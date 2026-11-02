@@ -81,6 +81,19 @@ export const SEED_LAGHOUAT_PLACES: Omit<Place, 'id'>[] = [
   },
 ];
 
+/**
+ * دالة مساعدة لحذف أي حقل يحمل القيمة undefined لأن Firestore يرفضها تماماً
+ */
+function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export class PlaceService {
   /**
    * جلب الأماكن المعتمدة فقط (verified == true)
@@ -137,14 +150,15 @@ export class PlaceService {
     }
 
     const now = Date.now();
-    const docData: Omit<Place, 'id'> = {
+    const docData = sanitizeForFirestore({
       ...placeData,
+      photoURL: placeData.photoURL ?? null,
       verified: true, // الأدمن فقط يمكنه إنشاء مكان موثق مباشرة
       owner: 'municipality',
       addedBy: adminUid,
       createdAt: now,
       updatedAt: now,
-    };
+    });
 
     const docRef = await addDoc(collection(db, 'places'), docData);
     return docRef.id;
@@ -216,14 +230,21 @@ export class PlaceService {
     }
 
     const now = Date.now();
-    const docData: Omit<Place, 'id'> = {
-      ...placeData,
+    const docData = sanitizeForFirestore({
+      kind: placeData.kind,
+      location: placeData.location,
+      neighborhood: placeData.neighborhood,
+      photoURL: placeData.photoURL ?? null,
+      notes: placeData.notes,
+      severity: placeData.severity,
+      schedule: placeData.schedule,
+      accepts: placeData.accepts,
       verified: false, // غير موثق حتى توافق عليه البلدية
       owner: 'informal', // ملكية غير رسمية/مقدمة من مواطن
       addedBy: citizenUid,
       createdAt: now,
       updatedAt: now,
-    };
+    });
 
     const docRef = await addDoc(collection(db, 'places'), docData);
     return docRef.id;
