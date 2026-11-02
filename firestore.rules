@@ -45,7 +45,7 @@ service cloud.firestore {
     }
 
     function isValidNeighborhood(nh) {
-      return nh in ['الواحات', 'الوئام', 'المقام', 'وسط المدينة (البلاد)'];
+      return nh == null || (nh is string && nh.size() >= 1 && nh.size() <= 100);
     }
 
     // --- مجموعة المستخدمين (users) ---

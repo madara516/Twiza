@@ -77,3 +77,28 @@ export function isLocationInRegion(
  * رسالة التنبيه اللبقة عند التواجد خارج المنطقة النشطة
  */
 export const OUT_OF_SERVICE_MESSAGE = `التطبيق متوفر حالياً في ${ACTIVE_REGION.nameAr} فقط، وقريباً في ولايات أخرى`;
+
+/**
+ * تحديد أقرب حي تقريبياً بشكل آلي من الإحداثيات في الخلفية دون إزعاج المستخدم باختيار يدوي
+ */
+export function getApproximateNeighborhood(lat: number, lng: number): 'الواحات' | 'الوئام' | 'المقام' | 'وسط المدينة (البلاد)' {
+  const centers: Record<'الواحات' | 'الوئام' | 'المقام' | 'وسط المدينة (البلاد)', { lat: number; lng: number }> = {
+    'وسط المدينة (البلاد)': { lat: 33.8015, lng: 2.8640 },
+    'الواحات': { lat: 33.8050, lng: 2.8685 },
+    'الوئام': { lat: 33.7960, lng: 2.8610 },
+    'المقام': { lat: 33.8080, lng: 2.8710 },
+  };
+
+  let minDistance = Infinity;
+  let nearest: 'الواحات' | 'الوئام' | 'المقام' | 'وسط المدينة (البلاد)' = 'وسط المدينة (البلاد)';
+
+  for (const [name, coords] of Object.entries(centers)) {
+    const d = Math.hypot(lat - coords.lat, lng - coords.lng);
+    if (d < minDistance) {
+      minDistance = d;
+      nearest = name as any;
+    }
+  }
+
+  return nearest;
+}

@@ -41,14 +41,6 @@ import { Place, PlaceKind, GeoLocation } from '../../src/types';
 import { PlaceWithDistance } from '../../src/utils/haversine';
 import { PlaceService } from '../../src/services/placeService';
 
-// إحداثيات تقريبية للأحياء لتمكين التمركز اليدوي عند رفض الـ GPS
-const NEIGHBORHOOD_COORDS: Record<Neighborhood, GeoLocation> = {
-  'وسط المدينة (البلاد)': { latitude: 33.8015, longitude: 2.8640 },
-  'الواحات': { latitude: 33.8050, longitude: 2.8685 },
-  'الوئام': { latitude: 33.7960, longitude: 2.8610 },
-  'المقام': { latitude: 33.8080, longitude: 2.8710 },
-};
-
 export default function MapScreen() {
   const router = useRouter();
   const { user, role } = useAuth();
@@ -59,7 +51,6 @@ export default function MapScreen() {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [showNearestModal, setShowNearestModal] = useState<boolean>(false);
-  const [showNeighborhoodModal, setShowNeighborhoodModal] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
 
   // حالات تأكيدات "ما زالت هنا" للمكان المختار
@@ -123,14 +114,7 @@ export default function MapScreen() {
       if (status !== 'granted') {
         Alert.alert(
           'إذن الموقع غير مفعّل',
-          'يمكنك اختيار الحي يدوياً للتمركز عليه في الخريطة.',
-          [
-            { text: 'إلغاء', style: 'cancel' },
-            {
-              text: 'اختيار حي 📍',
-              onPress: () => setShowNeighborhoodModal(true),
-            },
-          ]
+          'يمكنك التنقل يدوياً في الخريطة واستعراض كافة النقاط المحيطة بك.'
         );
         return;
       }
@@ -168,27 +152,10 @@ export default function MapScreen() {
       console.error('فشل جلب الموقع:', err);
       Alert.alert(
         'تعذر جلب الموقع',
-        'تأكد من تشغيل خدمة الموقع (GPS) في هاتفك أو اختر حياً يدوياً.',
-        [
-          { text: 'حسناً', style: 'cancel' },
-          {
-            text: 'اختيار حي يدوياً',
-            onPress: () => setShowNeighborhoodModal(true),
-          },
-        ]
+        'تأكد من تشغيل خدمة الموقع (GPS) في هاتفك أو تحرك بحرية على الخريطة.'
       );
     } finally {
       setIsLocating(false);
-    }
-  };
-
-  // التمركز اليدوي على حي معين
-  const handleSelectNeighborhood = (nh: Neighborhood) => {
-    const coords = NEIGHBORHOOD_COORDS[nh];
-    if (coords) {
-      setUserLocation(coords);
-      mapRef.current?.flyTo(coords.latitude, coords.longitude, 15);
-      setShowNeighborhoodModal(false);
     }
   };
 
@@ -350,15 +317,6 @@ export default function MapScreen() {
             activeOpacity={0.85}
           >
             <Text style={styles.fabIcon}>🎯</Text>
-          </TouchableOpacity>
-
-          {/* زر التمركز اليدوي على الأحياء */}
-          <TouchableOpacity
-            style={styles.fabBtn}
-            onPress={() => setShowNeighborhoodModal(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.fabIcon}>🏙️</Text>
           </TouchableOpacity>
         </View>
 
@@ -544,40 +502,6 @@ export default function MapScreen() {
                   )}
                 />
               )}
-            </View>
-          </View>
-        </Modal>
-
-        {/* نافذة اختيار الحي يدوياً في حالة رفض الـ GPS */}
-        <Modal
-          visible={showNeighborhoodModal}
-          animationType="fade"
-          transparent={true}
-          onRequestClose={() => setShowNeighborhoodModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContentSmall}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity
-                  style={styles.closeBtn}
-                  onPress={() => setShowNeighborhoodModal(false)}
-                >
-                  <Text style={styles.closeBtnText}>✕</Text>
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>اختر الحي للتمركز 🏙️</Text>
-              </View>
-
-              <View style={styles.neighborhoodGrid}>
-                {ACTIVE_REGION.neighborhoods.map((nh) => (
-                  <TouchableOpacity
-                    key={nh}
-                    style={styles.neighborhoodBtn}
-                    onPress={() => handleSelectNeighborhood(nh)}
-                  >
-                    <Text style={styles.neighborhoodBtnText}>{nh}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </View>
           </View>
         </Modal>

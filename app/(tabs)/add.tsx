@@ -33,6 +33,7 @@ import {
   ACTIVE_REGION,
   isLocationInRegion,
   OUT_OF_SERVICE_MESSAGE,
+  getApproximateNeighborhood,
 } from '../../src/constants/regions';
 import { Neighborhood } from '../../src/constants/laghouat';
 import { Place, PlaceKind, GeoLocation, Severity } from '../../src/types';
@@ -49,9 +50,6 @@ export default function AddScreen() {
 
   // حقول النموذج
   const [kind, setKind] = useState<PlaceKind>('bin');
-  const [neighborhood, setNeighborhood] = useState<Neighborhood>(
-    ACTIVE_REGION.neighborhoods[0]
-  );
   const [location, setLocation] = useState<GeoLocation>({
     latitude: ACTIVE_REGION.center.latitude,
     longitude: ACTIVE_REGION.center.longitude,
@@ -189,7 +187,7 @@ export default function AddScreen() {
         {
           kind,
           location,
-          neighborhood,
+          neighborhood: getApproximateNeighborhood(location.latitude, location.longitude),
           photoURL: uploadedPhotoURL,
           notes: notes.trim() || undefined,
           severity: kind === 'wild_dump' ? severity : undefined,
@@ -247,7 +245,7 @@ export default function AddScreen() {
     id: 'current-pin',
     kind,
     location,
-    neighborhood,
+    neighborhood: getApproximateNeighborhood(location.latitude, location.longitude),
     photoURL: null,
     owner: 'informal',
     verified: false,
@@ -375,31 +373,7 @@ export default function AddScreen() {
             الإحداثيات: {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
           </Text>
 
-          {/* 3. الحي التابع له */}
-          <Text style={styles.sectionTitle}>3. الحي 🏙️</Text>
-          <View style={styles.neighborhoodRow}>
-            {ACTIVE_REGION.neighborhoods.map((nh) => (
-              <TouchableOpacity
-                key={nh}
-                style={[
-                  styles.neighborhoodChip,
-                  neighborhood === nh && styles.neighborhoodChipActive,
-                ]}
-                onPress={() => setNeighborhood(nh as Neighborhood)}
-              >
-                <Text
-                  style={[
-                    styles.neighborhoodChipText,
-                    neighborhood === nh && styles.neighborhoodChipTextActive,
-                  ]}
-                >
-                  {nh}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* 4. حقول مخصصة حسب النوع */}
+          {/* 3. حقول مخصصة حسب النوع */}
           {kind === 'wild_dump' && (
             <View style={styles.dynamicSection}>
               <Text style={styles.sectionTitle}>درجة الخطورة ⚠️</Text>
@@ -457,8 +431,8 @@ export default function AddScreen() {
             </View>
           )}
 
-          {/* 5. صورة المكان */}
-          <Text style={styles.sectionTitle}>5. صورة توضيحية 📷</Text>
+          {/* 3. صورة المكان */}
+          <Text style={styles.sectionTitle}>3. صورة توضيحية 📷</Text>
           {photoUri ? (
             <View style={styles.photoPreviewWrapper}>
               <Image source={{ uri: photoUri }} style={styles.photoPreview} />
@@ -486,8 +460,8 @@ export default function AddScreen() {
             </View>
           )}
 
-          {/* 6. ملاحظات إضافية */}
-          <Text style={styles.sectionTitle}>6. ملاحظات إضافية ✍️</Text>
+          {/* 4. ملاحظات إضافية */}
+          <Text style={styles.sectionTitle}>4. ملاحظات إضافية ✍️</Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
             placeholder="اكتب أي تفاصيل تساعد في العثور على المكان أو وصف الحالة..."

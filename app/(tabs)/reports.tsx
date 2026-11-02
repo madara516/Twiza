@@ -30,7 +30,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { PlaceReport, ReportType, ReportStatus, GeoLocation } from '../../src/types';
 import { ReportService } from '../../src/services/reportService';
 import { StorageService } from '../../src/services/storageService';
-import { ACTIVE_REGION } from '../../src/constants/regions';
+import { ACTIVE_REGION, getApproximateNeighborhood } from '../../src/constants/regions';
 import { Neighborhood } from '../../src/constants/laghouat';
 
 const REPORT_TYPE_LABELS: Record<ReportType, { title: string; emoji: string }> = {
@@ -58,9 +58,6 @@ export default function ReportsScreen() {
   // نافذة إضافة تقرير جديد
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newType, setNewType] = useState<ReportType>('broken');
-  const [newNeighborhood, setNewNeighborhood] = useState<Neighborhood>(
-    ACTIVE_REGION.neighborhoods[0]
-  );
   const [newDesc, setNewDesc] = useState('');
   const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,8 +118,8 @@ export default function ReportsScreen() {
           type: newType,
           description: newDesc.trim(),
           photoURL: uploadedPhotoURL,
-          neighborhood: newNeighborhood,
-          location: ACTIVE_REGION.center, // مركز الحي افتراضياً للتقرير العام
+          neighborhood: getApproximateNeighborhood(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude),
+          location: ACTIVE_REGION.center, // مركز المنطقة افتراضياً للتقرير العام
         },
         user.uid
       );
@@ -436,30 +433,6 @@ export default function ReportsScreen() {
                       ]}
                     >
                       {REPORT_TYPE_LABELS[t].title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* الحي */}
-              <Text style={styles.fieldLabel}>الحي المعني</Text>
-              <View style={styles.neighborhoodChipsRow}>
-                {ACTIVE_REGION.neighborhoods.map((nh) => (
-                  <TouchableOpacity
-                    key={nh}
-                    style={[
-                      styles.neighborhoodChip,
-                      newNeighborhood === nh && styles.neighborhoodChipActive,
-                    ]}
-                    onPress={() => setNewNeighborhood(nh as Neighborhood)}
-                  >
-                    <Text
-                      style={[
-                        styles.neighborhoodChipText,
-                        newNeighborhood === nh && styles.neighborhoodChipTextActive,
-                      ]}
-                    >
-                      {nh}
                     </Text>
                   </TouchableOpacity>
                 ))}
