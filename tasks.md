@@ -103,17 +103,17 @@ my phone.
 
 ## Phase 4 — Reports, status, confirmations
 
-- [ ] Types and `reportService` (create, list mine, update status via admin)
-- [ ] Report form (place or free location, type, description, photo,
+- [x] Types and `reportService` (create, list mine, update status via admin)
+- [x] Report form (place or free location, type, description, photo,
       neighborhood)
-- [ ] "My reports" with status chips and the 14-day honest message
-- [ ] Reporter answers "Is it fixed? Yes / No" when status is `fixed`
-- [ ] "Still there" confirmations (doc id = uid; count/last date derived)
-- [ ] Rules: `placeReports` (create, admin/municipality transitions, reporter
+- [x] "My reports" with status chips and the 14-day honest message
+- [x] Reporter answers "Is it fixed? Yes / No" when status is `fixed`
+- [x] "Still there" confirmations (doc id = uid; count/last date derived)
+- [x] Rules: `placeReports` (create, admin/municipality transitions, reporter
       confirmation) and `confirmations` create
-- [ ] Emulator cases: invalid transition, citizen changing status, reading
+- [x] Emulator cases: invalid transition, citizen changing status, reading
       another user's report, double confirmation
-- [ ] Type check passes; commit
+- [x] Type check passes; commit
 
 **Done when:** the full cycle works: report -> admin changes status -> citizen
 sees it -> reporter confirms.

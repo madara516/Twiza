@@ -14,6 +14,7 @@ import {
   addDoc,
   doc,
   getDoc,
+  setDoc,
   orderBy,
   limit,
 } from 'firebase/firestore';
@@ -252,6 +253,69 @@ export class PlaceService {
     } catch (error) {
       console.error('خطأ في جلب أماكن المستخدم:', error);
       return [];
+    }
+  }
+
+  /**
+   * تأكيد وجود المكان / الحاوية ("ما زالت هنا")
+   * 
+   * المعرّف إجباري أن يساوي uid لمنع التكرار (كل مواطن يحسب صوته مرة واحدة)
+   */
+  static async confirmPlace(placeId: string, citizenUid: string): Promise<void> {
+    if (!db) {
+      throw new Error('Firebase غير متصل.');
+    }
+
+    const confRef = doc(db, 'places', placeId, 'confirmations', citizenUid);
+    await setDoc(confRef, {
+      uid: citizenUid,
+      createdAt: Date.now(),
+    });
+  }
+
+  /**
+   * التحقق هل أكد المواطن هذا المكان مسبقاً
+   */
+  static async hasUserConfirmedPlace(placeId: string, citizenUid: string): Promise<boolean> {
+    if (!db) return false;
+    try {
+      const confRef = doc(db, 'places', placeId, 'confirmations', citizenUid);
+      const snap = await getDoc(confRef);
+      return snap.exists();
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * جلب إحصائيات التأكيدات (العدد الإجمالي وتاريخ آخر تأكيد مشتق)
+   */
+  static async getPlaceConfirmationsStats(
+    placeId: string
+  ): Promise<{ count: number; lastConfirmedAt: number | null }> {
+    if (!db) return { count: 0, lastConfirmedAt: null };
+
+    try {
+      const confCol = collection(db, 'places', placeId, 'confirmations');
+      const snap = await getDocs(confCol);
+      const count = snap.size;
+
+      if (count === 0) {
+        return { count: 0, lastConfirmedAt: null };
+      }
+
+      let lastDate = 0;
+      snap.docs.forEach((d) => {
+        const at = d.data().createdAt;
+        if (at && at > lastDate) lastDate = at;
+      });
+
+      return {
+        count,
+        lastConfirmedAt: lastDate > 0 ? lastDate : null,
+      };
+    } catch {
+      return { count: 0, lastConfirmedAt: null };
     }
   }
 }

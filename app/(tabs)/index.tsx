@@ -10,7 +10,7 @@
  * 6. ميزة Seeding للأدمن لبذر الأماكن الأولية.
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -61,6 +61,49 @@ export default function MapScreen() {
   const [showNearestModal, setShowNearestModal] = useState<boolean>(false);
   const [showNeighborhoodModal, setShowNeighborhoodModal] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
+
+  // حالات تأكيدات "ما زالت هنا" للمكان المختار
+  const [confirmStats, setConfirmStats] = useState<{ count: number; lastConfirmedAt: number | null }>({
+    count: 0,
+    lastConfirmedAt: null,
+  });
+  const [hasConfirmed, setHasConfirmed] = useState<boolean>(false);
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (selectedPlace) {
+      PlaceService.getPlaceConfirmationsStats(selectedPlace.id).then(setConfirmStats);
+      if (user) {
+        PlaceService.hasUserConfirmedPlace(selectedPlace.id, user.uid).then(setHasConfirmed);
+      } else {
+        setHasConfirmed(false);
+      }
+    }
+  }, [selectedPlace, user]);
+
+  const handleConfirmStillThere = async () => {
+    if (!user) {
+      Alert.alert('تسجيل الدخول مطلوب', 'يرجى تسجيل الدخول لتأكيد وجود هذا المكان.');
+      router.push('/(auth)/login');
+      return;
+    }
+    if (!selectedPlace || hasConfirmed || isConfirming) return;
+
+    try {
+      setIsConfirming(true);
+      await PlaceService.confirmPlace(selectedPlace.id, user.uid);
+      setHasConfirmed(true);
+      setConfirmStats((prev) => ({
+        count: prev.count + 1,
+        lastConfirmedAt: Date.now(),
+      }));
+      Alert.alert('شكراً لك! 🤝', 'تم تسجيل تأكيدك "ما زالت هنا" بنجاح.');
+    } catch (err: any) {
+      Alert.alert('تنبيه', err.message || 'تعذر تسجيل التأكيد.');
+    } finally {
+      setIsConfirming(false);
+    }
+  };
 
   // جلب الأماكن الحية عبر الـ Hook
   const { places, nearestPlaces, loading, error, refresh } = usePlaces(userLocation);
@@ -374,6 +417,40 @@ export default function MapScreen() {
               </View>
             ) : null}
 
+            {/* صف تأكيدات المواطنين "ما زالت هنا" */}
+            <View style={styles.confirmRow}>
+              <TouchableOpacity
+                style={[
+                  styles.confirmBtn,
+                  hasConfirmed && styles.confirmBtnActive,
+                ]}
+                onPress={handleConfirmStillThere}
+                disabled={hasConfirmed || isConfirming}
+                activeOpacity={0.8}
+              >
+                {isConfirming ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.confirmBtnText,
+                      hasConfirmed && styles.confirmBtnTextActive,
+                    ]}
+                  >
+                    {hasConfirmed ? '✅ أكدت وجودها' : '👍 ما زالت هنا'} ({confirmStats.count})
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {confirmStats.lastConfirmedAt ? (
+                <Text style={styles.lastConfirmedText}>
+                  آخر تأكيد: {new Date(confirmStats.lastConfirmedAt).toLocaleDateString('ar-DZ')}
+                </Text>
+              ) : (
+                <Text style={styles.lastConfirmedText}>كن أول من يؤكد</Text>
+              )}
+            </View>
+
             <View style={styles.placeActions}>
               <TouchableOpacity
                 style={styles.directionsBtn}
@@ -672,6 +749,39 @@ const styles = StyleSheet.create({
   metaValue: {
     fontSize: 11,
     color: colors.primary,
+  },
+  confirmRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9F9F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  confirmBtn: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  confirmBtnActive: {
+    backgroundColor: '#E8F5E9',
+  },
+  confirmBtnText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  confirmBtnTextActive: {
+    color: '#2E7D32',
+  },
+  lastConfirmedText: {
+    fontSize: 11,
+    color: colors.textSecondary,
   },
   placeActions: {
     flexDirection: 'row-reverse',
