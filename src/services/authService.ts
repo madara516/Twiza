@@ -140,8 +140,22 @@ export class AuthService {
         return docSnap.data() as UserProfile;
       }
       return null;
-    } catch (error) {
-      console.error('خطأ في جلب بيانات المستخدم:', error);
+    } catch (error: any) {
+      // إذا كانت قاعدة بيانات Firestore غير متصلة أو لم تُنشأ بعد في Console، نعتمد رتبة مواطن افتراضية
+      if (error?.code === 'unavailable' || error?.message?.includes('offline')) {
+        console.warn('تنبيه: تعذر الاتصال بـ Firestore (Client is offline)، جاري استخدام رتبة مواطن افتراضية.');
+        return {
+          uid,
+          displayName: auth?.currentUser?.displayName || 'مواطن',
+          photoURL: null,
+          language: 'ar',
+          role: 'citizen',
+          isBanned: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      }
+      console.warn('تنبيه في جلب بيانات المستخدم:', error);
       return null;
     }
   }

@@ -171,10 +171,14 @@ export default function AddScreen() {
     try {
       setIsSubmitting(true);
 
-      // رفع الصورة إن وجدت
+      // محاولة رفع الصورة مع معالجة مرنة في حالة عدم تفعيل Storage بعد
       let uploadedPhotoURL: string | null = null;
       if (photoUri) {
-        uploadedPhotoURL = await StorageService.uploadPlacePhoto(photoUri, user.uid);
+        try {
+          uploadedPhotoURL = await StorageService.uploadPlacePhoto(photoUri, user.uid);
+        } catch (uploadErr) {
+          console.warn('تنبيه: تعذر رفع الصورة للسحابة، سيتم حفظ المكان بدونها:', uploadErr);
+        }
       }
 
       // تحضير المواد المقبولة إن كانت نقطة تجميع

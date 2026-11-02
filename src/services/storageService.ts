@@ -100,15 +100,21 @@ export class StorageService {
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
       const storageRef = ref(storage, `places/${uid}/${fileName}`);
 
-      await uploadBytes(storageRef, blob, {
+      // حماية بمهلة 8 ثوانٍ لتفادي تعليق التطبيق إذا لم تكن خدمة Storage مفعلة بعد في Console
+      const uploadPromise = uploadBytes(storageRef, blob, {
         contentType: 'image/jpeg',
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('تجاوزت محاولة رفع الصورة المهلة المحددة (Storage timeout).')), 8000)
+      );
+
+      await Promise.race([uploadPromise, timeoutPromise]);
 
       const downloadURL = await getDownloadURL(storageRef);
       return downloadURL;
     } catch (error: any) {
-      console.error('فشل رفع الصورة إلى Storage:', error);
-      throw new Error(error.message || 'تعذر رفع الصورة إلى السحابة، يرجى المحاولة لاحقاً.');
+      console.warn('تعذر رفع الصورة إلى Firebase Storage:', error?.message || error);
+      throw error;
     }
   }
 }

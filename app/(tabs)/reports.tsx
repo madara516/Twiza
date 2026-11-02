@@ -110,7 +110,11 @@ export default function ReportsScreen() {
 
       let uploadedPhotoURL: string | null = null;
       if (newPhotoUri) {
-        uploadedPhotoURL = await StorageService.uploadPlacePhoto(newPhotoUri, user.uid);
+        try {
+          uploadedPhotoURL = await StorageService.uploadPlacePhoto(newPhotoUri, user.uid);
+        } catch (uploadErr) {
+          console.warn('تنبيه: تعذر رفع صورة التقرير للسحابة، سيتم حفظ التقرير بدونها:', uploadErr);
+        }
       }
 
       await ReportService.createReport(
