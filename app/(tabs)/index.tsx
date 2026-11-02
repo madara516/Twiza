@@ -22,6 +22,7 @@ import {
   Modal,
   FlatList,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -61,6 +62,9 @@ export default function MapScreen() {
     ACTIVE_REGION.neighborhoods[0] as Neighborhood
   );
   const [isSubmittingVote, setIsSubmittingVote] = useState<boolean>(false);
+
+  // حالة معاينة الصورة بحجم كامل
+  const [selectedImageForPreview, setSelectedImageForPreview] = useState<string | null>(null);
 
   // حالات تأكيدات "ما زالت هنا" للمكان المختار
   const [confirmStats, setConfirmStats] = useState<{ count: number; lastConfirmedAt: number | null }>({
@@ -414,6 +418,51 @@ export default function MapScreen() {
               </View>
             </View>
 
+            {/* صورة المكان أو النقطة السوداء لتوضيح الحالة والمخاطر */}
+            {selectedPlace.photoURL ? (
+              <TouchableOpacity
+                style={styles.placeImageContainer}
+                onPress={() => setSelectedImageForPreview(selectedPlace.photoURL)}
+                activeOpacity={0.9}
+              >
+                <Image
+                  source={{ uri: selectedPlace.photoURL }}
+                  style={styles.placeCardImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageZoomBadge}>
+                  <Text style={styles.imageZoomText}>🔍 اضغط لتكبير الصورة</Text>
+                </View>
+              </TouchableOpacity>
+            ) : selectedPlace.kind === 'wild_dump' ? (
+              <View style={styles.noPhotoNotice}>
+                <Text style={styles.noPhotoText}>📷 لم تُرفع صورة لهذا المكب بعد</Text>
+              </View>
+            ) : null}
+
+            {/* توضيح درجة الخطورة للنقاط السوداء والمكبات الفوضوية */}
+            {selectedPlace.kind === 'wild_dump' && selectedPlace.severity ? (
+              <View
+                style={[
+                  styles.severityBox,
+                  selectedPlace.severity === 'large' && styles.severityLarge,
+                  selectedPlace.severity === 'medium' && styles.severityMedium,
+                  selectedPlace.severity === 'small' && styles.severitySmall,
+                ]}
+              >
+                <Text style={styles.severityTitle}>
+                  {selectedPlace.severity === 'large' && '⚠️ درجة الخطورة: مكب نفايات عالي (كبير)'}
+                  {selectedPlace.severity === 'medium' && '⚠️ درجة الخطورة: مكب متوسط (تراكم ملحوظ)'}
+                  {selectedPlace.severity === 'small' && '⚠️ درجة الخطورة: بقعة نفايات صغيرة'}
+                </Text>
+                <Text style={styles.severityDescription}>
+                  {selectedPlace.severity === 'large' && 'يشكل خطراً صحياً وتلوثاً كبيراً على سكان الحي وبحاجة لتدخل عاجل من البلدية.'}
+                  {selectedPlace.severity === 'medium' && 'تجمع للنفايات الصلبة يهدد بنمو الحشرات والروائح، يرجى الحذر والتصويت لحاوية.'}
+                  {selectedPlace.severity === 'small' && 'بداية تجمع نفايات يمكن تداركه سريعاً قبل تفاقمه.'}
+                </Text>
+              </View>
+            ) : null}
+
             {selectedPlace.notes ? (
               <Text style={styles.placeNotes}>{selectedPlace.notes}</Text>
             ) : null}
@@ -477,8 +526,22 @@ export default function MapScreen() {
                   }
                 }}
               >
-                <Text style={styles.reportBtnText}>تبليغ عن مشكلة ⚠️</Text>
+                <Text style={styles.reportBtnText}>تبليغ ⚠️</Text>
               </TouchableOpacity>
+
+              {/* تصويت مباشر لوضع حاوية بديلة للنقطة السوداء */}
+              {selectedPlace.kind === 'wild_dump' ? (
+                <TouchableOpacity
+                  style={styles.voteFromCardBtn}
+                  onPress={() => {
+                    setSelectedVoteNeighborhood(selectedPlace.neighborhood);
+                    setShowNeedBinModal(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.voteFromCardBtnText}>طلب حاوية 🗑️</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         ) : null}
@@ -622,6 +685,32 @@ export default function MapScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </Modal>
+
+        {/* نافذة معاينة صورة المكان بحجم كامل (Full-Screen Image Modal) */}
+        <Modal
+          visible={selectedImageForPreview !== null}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setSelectedImageForPreview(null)}
+        >
+          <View style={styles.previewModalOverlay}>
+            <TouchableOpacity
+              style={styles.closePreviewBtn}
+              onPress={() => setSelectedImageForPreview(null)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.closePreviewBtnText}>✕ إغلاق</Text>
+            </TouchableOpacity>
+
+            {selectedImageForPreview ? (
+              <Image
+                source={{ uri: selectedImageForPreview }}
+                style={styles.fullPreviewImage}
+                resizeMode="contain"
+              />
+            ) : null}
           </View>
         </Modal>
       </View>
@@ -1042,5 +1131,115 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  placeImageContainer: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginTop: 8,
+    marginBottom: 6,
+    position: 'relative',
+    backgroundColor: '#EEEEEE',
+  },
+  placeCardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageZoomBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageZoomText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  noPhotoNotice: {
+    backgroundColor: '#F5F5F5',
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  noPhotoText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  severityBox: {
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 6,
+    borderWidth: 1,
+  },
+  severityLarge: {
+    backgroundColor: '#FFEBEE',
+    borderColor: '#EF5350',
+  },
+  severityMedium: {
+    backgroundColor: '#FFF3E0',
+    borderColor: '#FFA726',
+  },
+  severitySmall: {
+    backgroundColor: '#FFFDE7',
+    borderColor: '#FFEE58',
+  },
+  severityTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#B71C1C',
+    textAlign: 'right',
+  },
+  severityDescription: {
+    fontSize: 11,
+    color: '#424242',
+    textAlign: 'right',
+    marginTop: 3,
+    lineHeight: 16,
+  },
+  voteFromCardBtn: {
+    flex: 1,
+    backgroundColor: '#2E7D32',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  voteFromCardBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  previewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+  },
+  closePreviewBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  closePreviewBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  fullPreviewImage: {
+    width: '100%',
+    height: '80%',
   },
 });
