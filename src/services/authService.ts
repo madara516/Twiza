@@ -58,8 +58,16 @@ export class AuthService {
         updatedAt: now,
       };
 
-      // حفظ وثيقة المستخدم في Firestore
-      await setDoc(doc(db, 'users', user.uid), userProfile);
+      // حفظ وثيقة المستخدم في Firestore مع حماية المهلة لعدم تعليق الواجهة
+      try {
+        const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 4000));
+        await Promise.race([
+          setDoc(doc(db, 'users', user.uid), userProfile),
+          timeoutPromise,
+        ]);
+      } catch (dbErr) {
+        console.warn('تنبيه: تأخر حفظ وثيقة المستخدم في Firestore:', dbErr);
+      }
 
       return userProfile;
     } catch (error: any) {

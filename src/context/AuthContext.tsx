@@ -38,7 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const p = await AuthService.getUserProfile(firebaseUser.uid);
+      // حماية من تعليق التطبيق في حال تأخر اتصال Firestore
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+      const p = await Promise.race([
+        AuthService.getUserProfile(firebaseUser.uid),
+        timeoutPromise,
+      ]);
       setProfile(p);
     } catch (err) {
       console.error('فشل في جلب ملف المستخدم:', err);
