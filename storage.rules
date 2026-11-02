@@ -1,0 +1,33 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isImageUnder5MB() {
+      return request.resource.contentType.matches('image/.*') &&
+             request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // صور الأماكن والحاويات
+    match /places/{uid}/{allPaths=**} {
+      // قراءة علنية لصور الأماكن المعتمدة
+      allow read: if true;
+      // الرفع لصاحب المعرّف فقط وبحجم أقل من 5 ميغابايت
+      allow write: if isOwner(uid) && isImageUnder5MB();
+    }
+
+    // صور التقارير والشكاوى (خصوصية أكثر)
+    match /reports/{uid}/{allPaths=**} {
+      allow read: if isOwner(uid) || 
+                     (isAuthenticated() && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'municipality']);
+      allow write: if isOwner(uid) && isImageUnder5MB();
+    }
+  }
+}

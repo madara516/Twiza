@@ -44,19 +44,19 @@ Status legend: `[ ]` todo, `[x]` done, `[~]` partly done / blocked (add a note).
 
 ## Phase 1 — Auth, user document, navigation, rules v1
 
-- [ ] `AuthContext` (`loading` starts true, set false after the first callback)
-- [ ] `authService`: register, login, logout, reset password (all with try/catch)
-- [ ] Create `users/{uid}` on registration with `role='citizen'`, `isBanned=false`
-- [ ] Screens: Login, Register, Forgot password (validation and error messages)
-- [ ] Navigation: tabs Map, Add, My reports, Profile; guest can browse the map
-- [ ] Profile screen: name, language toggle (AR/EN), logout
-- [ ] Firestore rules v1 for `users` (+ helpers `isOwner`, `isNotBanned`,
+- [x] `AuthContext` (`loading` starts true, set false after the first callback)
+- [x] `authService`: register, login, logout, reset password (all with try/catch)
+- [x] Create `users/{uid}` on registration with `role='citizen'`, `isBanned=false`
+- [x] Screens: Login, Register, Forgot password (validation and error messages)
+- [x] Navigation: tabs Map, Add, My reports, Profile; guest can browse the map
+- [x] Profile screen: name, language toggle (AR/EN), logout
+- [x] Firestore rules v1 for `users` (+ helpers `isOwner`, `isNotBanned`,
       `isAdmin`)
-- [ ] Storage rules (own folder, images only, under 5 MB)
-- [ ] Emulator test checklist for `users` (12 ALLOWED + 12 DENIED planned across
+- [x] Storage rules (own folder, images only, under 5 MB)
+- [x] Emulator test checklist for `users` (12 ALLOWED + 12 DENIED planned across
       all phases; write the first cases now)
 - [ ] Set my own user as `admin` MANUALLY in the Firebase Console
-- [ ] Type check passes; commit
+- [x] Type check passes; commit
 
 **Done when:** I can register, login, logout, and the rules deny a user who tries
 to set `role: 'admin'`.
