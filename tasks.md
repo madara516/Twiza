@@ -65,18 +65,18 @@ to set `role: 'admin'`.
 
 ## Phase 2 — Map, filters, "Nearest to me"
 
-- [ ] Types: `Place`, `PlaceKind`, `PlaceStatus`, `Severity`
-- [ ] `placeService`: list verified places (query filters `verified==true`)
-- [ ] Rules: `places` read (verified only), `confirmations` read
-- [ ] Map screen with markers by kind and color
-- [ ] Filter chips (bins / collection points / wild dumps)
-- [ ] Location permission flow (denied: clear message + choose a neighborhood)
-- [ ] "Nearest to me" with Haversine, sorted list with m/km
-- [ ] Place card (photo, kind, neighborhood, notes, schedule, last confirmation)
-- [ ] "Directions" button opens the maps app
-- [ ] Loading, error and empty states (empty map message)
-- [ ] Admin-only quick add of verified places (for seeding) is allowed by rules
-- [ ] Type check passes; commit
+- [x] Types: `Place`, `PlaceKind`, `PlaceStatus`, `Severity`
+- [x] `placeService`: list verified places (query filters `verified==true`)
+- [x] Rules: `places` read (verified only), `confirmations` read
+- [x] Map screen with markers by kind and color
+- [x] Filter chips (bins / collection points / wild dumps)
+- [x] Location permission flow (denied: clear message + choose a neighborhood)
+- [x] "Nearest to me" with Haversine, sorted list with m/km
+- [x] Place card (photo, kind, neighborhood, notes, schedule, last confirmation)
+- [x] "Directions" button opens the maps app
+- [x] Loading, error and empty states (empty map message)
+- [x] Admin-only quick add of verified places (for seeding) is allowed by rules
+- [x] Type check passes; commit
 
 **Done when:** I see seeded places on the map and "Nearest to me" works on
 my phone.

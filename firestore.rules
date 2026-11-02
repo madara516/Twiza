@@ -108,7 +108,8 @@ service cloud.firestore {
       // تأكيدات المواطنين داخل المكان
       match /confirmations/{confirmUid} {
         allow read: if isAuthenticated();
-        allow create: if isOwner(confirmUid) && isNotBanned();
+        allow create: if isOwner(confirmUid) && isNotBanned() && 
+                         get(/databases/$(database)/documents/places/$(placeId)).data.verified == true;
         allow update: if false; // لا يوجد تعديل للتأكيد
         allow delete: if isAdmin();
       }
