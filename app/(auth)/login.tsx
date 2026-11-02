@@ -69,6 +69,22 @@ export default function LoginScreen() {
         {errorMessage ? (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+            <View style={styles.errorActionsRow}>
+              <TouchableOpacity
+                style={styles.errorActionBtn}
+                onPress={() => router.push('/(auth)/forgot-password')}
+              >
+                <Text style={styles.errorActionBtnText}>نسيت كلمة المرور؟ 🔑</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.errorActionBtn, styles.errorActionBtnRegister]}
+                onPress={() => router.push('/(auth)/register')}
+              >
+                <Text style={[styles.errorActionBtnText, styles.errorActionBtnRegisterText]}>
+                  أنشئ حساباً جديداً ✍️
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
 
@@ -177,6 +193,33 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.xs,
     textAlign: 'right',
     fontWeight: '600',
+    lineHeight: 18,
+  },
+  errorActionsRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginTop: 10,
+  },
+  errorActionBtn: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFCDD2',
+  },
+  errorActionBtnText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  errorActionBtnRegister: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  errorActionBtnRegisterText: {
+    color: '#FFF',
   },
   form: {
     gap: theme.spacing.md,

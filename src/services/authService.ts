@@ -201,10 +201,11 @@ export class AuthService {
       case 'auth/user-disabled':
         return 'هذا الحساب تم تعطيله.';
       case 'auth/user-not-found':
-        return 'لا يوجد حساب بهذا البريد الإلكتروني.';
+        return 'البريد الإلكتروني غير موجود (The email does not exist). يرجى التأكد من الإيميل أو إنشاء حساب جديد.';
       case 'auth/wrong-password':
+        return 'كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور أو استخدام "نسيت كلمة المرور؟".';
       case 'auth/invalid-credential':
-        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة. إذا لم تنشئ حسابك بعد، اضغط على "أنشئ حساباً جديداً" بالأسفل.';
       case 'auth/email-already-in-use':
         return 'هذا البريد الإلكتروني مسجل مسبقاً.';
       case 'auth/weak-password':
