@@ -105,10 +105,10 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
       maxBoundsViscosity: 0.8
     }).setView([${center.latitude}, ${center.longitude}], ${zoom});
 
-    // استخدام بلاطات CartoDB Voyager السريعة والودية مع تطبيقات الموبايل وبدون حظر
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19
+    // استخدام بلاطات OpenStreetMap الرسمية المجانية تماماً وبدون أي مفتاح API
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
     }).addTo(map);
 
     var markersGroup = L.layerGroup().addTo(map);
@@ -261,7 +261,7 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
           originWhitelist={['*']}
           source={{ html: initialHtml }}
           style={styles.webView}
-          userAgent="AlTwizaApp/1.0 (https://altwiza.dz)"
+          userAgent="Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 AlTwizaApp/1.0"
           onMessage={handleMessage}
           startInLoadingState={true}
           renderLoading={() => (
