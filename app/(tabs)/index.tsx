@@ -139,8 +139,8 @@ export default function MapScreen() {
     }
   };
 
-  // جلب الأماكن الحية عبر الـ Hook
-  const { places, nearestPlaces, loading, error, refresh } = usePlaces(userLocation);
+  // جلب الأماكن الحية عبر الـ Hook (مع دمج أماكن المستخدم غير الموثقة لتظهر له فوراً)
+  const { places, nearestPlaces, loading, error, refresh } = usePlaces(userLocation, user?.uid);
 
   // تصفية الأماكن المعروضة حسب الفلتر المختار
   const filteredPlaces = useMemo(() => {

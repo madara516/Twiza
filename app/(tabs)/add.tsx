@@ -546,6 +546,10 @@ export default function AddScreen() {
                     الحي: {item.neighborhood}
                   </Text>
 
+                  {item.photoURL ? (
+                    <Image source={{ uri: item.photoURL }} style={styles.myPlacePhoto} />
+                  ) : null}
+
                   {item.notes ? (
                     <Text style={styles.myPlaceNotes} numberOfLines={2}>
                       {item.notes}
@@ -958,6 +962,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'right',
+  },
+  myPlacePhoto: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginVertical: 8,
+    backgroundColor: '#EEEEEE',
   },
   myPlaceNotes: {
     fontSize: 13,
