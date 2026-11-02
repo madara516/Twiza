@@ -1,0 +1,26 @@
+{
+  "app_name": "Al-Twiza",
+  "city": "Laghouat",
+  "tagline": "Bridge between citizens and municipality for a cleaner city",
+  "welcome": "Welcome to Al-Twiza",
+  "welcome_desc": "Laghouat city app to find nearest waste bins, collection points, and report black spots.",
+  "kinds": {
+    "bin": "Bin",
+    "collection_point": "Collection Point",
+    "wild_dump": "Wild Dump"
+  },
+  "statuses": {
+    "sent": "Sent",
+    "received": "Received",
+    "in_repair": "In Repair",
+    "fixed": "Fixed",
+    "rejected": "Rejected"
+  },
+  "neighborhoods_title": "Currently Approved Laghouat Neighborhoods",
+  "status_ok": "All systems operating normally",
+  "device_ready": "Ready for Android via Expo Go",
+  "nearest_places": "Nearest to me",
+  "add_place": "Add Place",
+  "my_reports": "My Reports",
+  "profile": "Profile"
+}
