@@ -100,28 +100,6 @@ export default function ReportsScreen() {
     return true;
   });
 
-  // تأكيد الإصلاح من صاحب التقرير
-  const handleConfirmFix = async (reportId: string, isFixed: boolean) => {
-    if (!user) return;
-    try {
-      await ReportService.confirmFix(reportId, user.uid, isFixed);
-      // تحديث الحالة محلياً فوراً
-      setReports((prev) =>
-        prev.map((r) =>
-          r.id === reportId ? { ...r, reporterConfirmed: isFixed, updatedAt: Date.now() } : r
-        )
-      );
-      Alert.alert(
-        'شكراً لملاحظتك',
-        isFixed
-          ? 'تم تسجيل تأكيدك بنجاح. شكراً لمساهمتك في نظافة المدينة!'
-          : 'تم إعلام الفريق بأن المشكلة ما زالت قائمة لمتابعتها مجدداً.'
-      );
-    } catch (err: any) {
-      Alert.alert('خطأ', err.message || 'تعذر تأكيد الإصلاح.');
-    }
-  };
-
   // إرسال تقرير جديد
   const handleSubmitReport = async () => {
     if (!user) return;
@@ -402,39 +380,12 @@ export default function ReportsScreen() {
                   </View>
                 ) : null}
 
-                {/* سؤال تأكيد المواطن عند الإصلاح (Is it fixed? Yes / No) */}
+                {/* إشعار إتمام الإصلاح النهائي من البلدية */}
                 {item.status === 'fixed' ? (
-                  <View style={styles.confirmFixCard}>
-                    {item.reporterConfirmed === null ? (
-                      <>
-                        <Text style={styles.confirmFixTitle}>
-                          أعلنت البلدية إصلاح المشكلة 🛠️ هل تم ذلك فعلاً؟
-                        </Text>
-                        <View style={styles.confirmFixActions}>
-                          <TouchableOpacity
-                            style={[styles.confirmFixBtn, styles.confirmFixBtnYes]}
-                            onPress={() => handleConfirmFix(item.id, true)}
-                          >
-                            <Text style={styles.confirmFixBtnYesText}>نعم، تم الإصلاح ✅</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.confirmFixBtn, styles.confirmFixBtnNo]}
-                            onPress={() => handleConfirmFix(item.id, false)}
-                          >
-                            <Text style={styles.confirmFixBtnNoText}>لا، ما زالت المشكلة ❌</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </>
-                    ) : item.reporterConfirmed === true ? (
-                      <Text style={styles.confirmedYesNotice}>
-                        ✅ أكدتَ أنت كمواطن نجاح الإصلاح. شكراً لك!
-                      </Text>
-                    ) : (
-                      <Text style={styles.confirmedNoNotice}>
-                        ❌ أبلغتَ أن المشكلة ما زالت قائمة. سيتم إعادة فحصها.
-                      </Text>
-                    )}
+                  <View style={styles.fixedSuccessBadge}>
+                    <Text style={styles.fixedSuccessText}>
+                      ✅ تم التدخل وإصلاح المشكلة بنجاح من قِبل مصالح النظافة
+                    </Text>
                   </View>
                 ) : null}
               </View>
@@ -836,59 +787,18 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     lineHeight: 16,
   },
-  confirmFixCard: {
-    backgroundColor: '#F1F8E9',
+  fixedSuccessBadge: {
+    backgroundColor: '#E8F5E9',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#DCEDC8',
+    borderColor: '#C8E6C9',
   },
-  confirmFixTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#33691E',
-    textAlign: 'right',
-    marginBottom: 8,
-  },
-  confirmFixActions: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-  },
-  confirmFixBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  confirmFixBtnYes: {
-    backgroundColor: '#2E7D32',
-  },
-  confirmFixBtnYesText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  confirmFixBtnNo: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#C62828',
-  },
-  confirmFixBtnNoText: {
-    color: '#C62828',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  confirmedYesNotice: {
+  fixedSuccessText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#2E7D32',
-    textAlign: 'right',
-  },
-  confirmedNoNotice: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#C62828',
     textAlign: 'right',
   },
   modalOverlay: {
