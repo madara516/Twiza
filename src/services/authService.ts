@@ -172,6 +172,8 @@ export class AuthService {
    */
   private static mapAuthError(code: string): string {
     switch (code) {
+      case 'auth/api-key-not-valid':
+        return 'مفتاح Firebase غير مفعل أو غير صالح. تأكد من تفعيل خدمة Authentication في Firebase Console.';
       case 'auth/invalid-email':
         return 'صيغة البريد الإلكتروني غير صحيحة.';
       case 'auth/user-disabled':

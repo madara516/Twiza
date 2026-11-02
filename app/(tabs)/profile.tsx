@@ -94,7 +94,7 @@ export default function ProfileScreen() {
 
               <View style={styles.roleTag}>
                 <Text style={styles.roleTagText}>
-                  {role === 'admin' ? '🛡️ مسؤول النظام (Admin)' : '👤 مواطن من الأغواط (Citizen)'}
+                  {role === 'admin' ? '🛡️ مسؤول النظام (Admin)' : '👤 مواطن (Citizen)'}
                 </Text>
               </View>
             </View>

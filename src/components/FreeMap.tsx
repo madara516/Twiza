@@ -1,15 +1,16 @@
 /**
  * مكوّن الخريطة التفاعلية الحرة (Free OpenStreetMap / Leaflet Component)
  * 
- * بالدارجة: هذه الخريطة مجانية 100% مبنية على بلاطات CartoDB Voyager / OpenStreetMap
+ * بالدارجة: هذه الخريطة مجانية 100% مبنية على بلاطات OpenStreetMap الرسمية
  * عبر Leaflet ومحمية بـ User-Agent مخصص باش ما يتبلوكاش السيرفر في الـ WebView.
- * وفيها تحديث سلس بلا فلاشينغ (injectJavaScript)، وحدود جغرافية مقفولة على الأغواط (minZoom & maxBounds).
+ * تدعم استقبال مركز الانطلاق (initialCenter) وحدود الخدمة (serviceBounds) كـ Props
+ * لتناسب أي منطقة دون التقيد باسم أو إحداثيات محددة داخل الكود.
  */
 
 import React, { useRef, useEffect, useMemo } from 'react';
 import { StyleSheet, View, ActivityIndicator, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { LAGHOUAT_CENTER } from '../constants/laghouat';
+import { ACTIVE_REGION, RegionBounds } from '../constants/regions';
 import { colors } from '../theme/colors';
 import { Place } from '../types';
 
@@ -18,12 +19,16 @@ export interface FreeMapRef {
   updateMarkers: (places: Place[]) => void;
 }
 
-interface FreeMapProps {
+export interface FreeMapProps {
   places?: Place[];
   onSelectPlace?: (place: Place) => void;
   onMapClick?: (coords: { latitude: number; longitude: number }) => void;
-  center?: { latitude: number; longitude: number };
+  initialCenter?: { latitude: number; longitude: number };
+  center?: { latitude: number; longitude: number }; // للتوافق العكسي
+  serviceBounds?: RegionBounds;
   zoom?: number;
+  minZoom?: number;
+  maxZoom?: number;
 }
 
 export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
@@ -32,19 +37,26 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
       places = [],
       onSelectPlace,
       onMapClick,
-      center = LAGHOUAT_CENTER,
+      initialCenter,
+      center,
+      serviceBounds,
       zoom = 14,
+      minZoom = 11,
+      maxZoom = 19,
     },
     ref
   ) => {
     const webViewRef = useRef<any>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
-    // حدود الأغواط لمنع الخروج لمساحات فارغة
-    const LAGHOUAT_BOUNDS = {
-      southWest: [33.65, 2.70],
-      northEast: [33.95, 3.05],
-    };
+    const activeCenter = initialCenter || center || ACTIVE_REGION.center;
+    const activeBounds = serviceBounds || ACTIVE_REGION.bounds;
+
+    // حساب حدود التحريك (Panning Bounds) مع هامش أمان طفيف
+    const swLat = activeBounds.minLat - 0.05;
+    const swLng = activeBounds.minLng - 0.05;
+    const neLat = activeBounds.maxLat + 0.05;
+    const neLng = activeBounds.maxLng + 0.05;
 
     // القالب الثابت لـ HTML لا يعاد تحميله لتجنب الوميض الأبيض (No Flashing)
     const initialHtml = useMemo(() => {
@@ -54,7 +66,7 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>خريطة الأغواط - التويزة</title>
+  <title>خريطة التويزة - Al-Twiza Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     html, body, #map {
@@ -92,22 +104,22 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     var bounds = L.latLngBounds(
-      L.latLng(${LAGHOUAT_BOUNDS.southWest[0]}, ${LAGHOUAT_BOUNDS.southWest[1]}),
-      L.latLng(${LAGHOUAT_BOUNDS.northEast[0]}, ${LAGHOUAT_BOUNDS.northEast[1]})
+      L.latLng(${swLat}, ${swLng}),
+      L.latLng(${neLat}, ${neLng})
     );
 
     var map = L.map('map', {
       zoomControl: true,
       attributionControl: false,
-      minZoom: 11,
-      maxZoom: 19,
+      minZoom: ${minZoom},
+      maxZoom: ${maxZoom},
       maxBounds: bounds,
       maxBoundsViscosity: 0.8
-    }).setView([${center.latitude}, ${center.longitude}], ${zoom});
+    }).setView([${activeCenter.latitude}, ${activeCenter.longitude}], ${zoom});
 
     // استخدام بلاطات OpenStreetMap الرسمية المجانية تماماً وبدون أي مفتاح API
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+      maxZoom: ${maxZoom},
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
@@ -180,74 +192,99 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
 </body>
 </html>
       `;
-    }, []);
+    }, [activeCenter.latitude, activeCenter.longitude, swLat, swLng, neLat, neLng, minZoom, maxZoom, zoom]);
 
-    // تحديث العلامات بسلاسة فور تغير الفلتر دون إعادة تحميل الصفحة (Zero-Flicker)
-    useEffect(() => {
-      const markersPayload = JSON.stringify(places);
-      const script = `
-        if (window.updateMarkers) {
-          window.updateMarkers(${markersPayload});
-        }
-        true;
-      `;
-
-      if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
-        (iframeRef.current.contentWindow as any).updateMarkers?.(places);
-      } else if (webViewRef.current) {
-        webViewRef.current.injectJavaScript(script);
-      }
-    }, [places]);
-
-    // دعم استدعاء دالة الطيران لموقع المستخدم عبر ref
-    React.useImperativeHandle(ref, () => ({
-      flyTo: (latitude: number, longitude: number, zoomLevel = 16) => {
-        const script = `
-          if (window.flyToLocation) {
-            window.flyToLocation(${latitude}, ${longitude}, ${zoomLevel});
-          }
-          true;
-        `;
-        if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
-          (iframeRef.current.contentWindow as any).flyToLocation?.(latitude, longitude, zoomLevel);
-        } else if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(script);
-        }
-      },
-      updateMarkers: (newPlaces: Place[]) => {
-        const script = `
-          if (window.updateMarkers) {
-            window.updateMarkers(${JSON.stringify(newPlaces)});
-          }
-          true;
-        `;
-        if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(script);
-        }
-      },
-    }));
-
+    // معالجة الرسائل الواردة من WebView (نقر على الماركر أو الخريطة)
     const handleMessage = (event: any) => {
       try {
-        const data = JSON.parse(event.nativeEvent.data);
+        const rawData =
+          typeof event.data === 'string'
+            ? event.data
+            : event.nativeEvent?.data;
+        if (!rawData) return;
+
+        const data = JSON.parse(rawData);
         if (data.type === 'SELECT_PLACE' && onSelectPlace) {
           onSelectPlace(data.payload);
         } else if (data.type === 'MAP_CLICK' && onMapClick) {
           onMapClick(data.payload);
         }
       } catch (e) {
-        console.error('خطأ في استقبال رسالة الخريطة:', e);
+        console.warn('خطأ في معالجة رسالة الخريطة:', e);
       }
     };
 
-    // دعم الويب (Expo Web) باستخدام iframe دون خطأ عدم دعم WebView
+    // الاستجابة لرسائل window على الويب (Expo Web iframe bridge)
+    useEffect(() => {
+      if (Platform.OS !== 'web') return;
+
+      const handleWebMessage = (e: MessageEvent) => {
+        handleMessage(e);
+      };
+
+      window.addEventListener('message', handleWebMessage);
+      return () => {
+        window.removeEventListener('message', handleWebMessage);
+      };
+    }, [onSelectPlace, onMapClick]);
+
+    // تعريض الدوال للأب (Parent) للتحكم الخفيف وبدون وميض
+    React.useImperativeHandle(ref, () => ({
+      flyTo: (lat: number, lng: number, zoomLevel = 16) => {
+        const js = `window.flyToLocation && window.flyToLocation(${lat}, ${lng}, ${zoomLevel}); true;`;
+        if (Platform.OS === 'web') {
+          iframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ type: 'FLY_TO', lat, lng, zoomLevel }),
+            '*'
+          );
+          // تنفيذ مباشر إذا كان الـ iframe في نفس النطاق
+          try {
+            (iframeRef.current?.contentWindow as any)?.flyToLocation?.(lat, lng, zoomLevel);
+          } catch {}
+        } else {
+          webViewRef.current?.injectJavaScript(js);
+        }
+      },
+      updateMarkers: (newPlaces: Place[]) => {
+        const placesJson = JSON.stringify(newPlaces);
+        const js = `window.updateMarkers && window.updateMarkers(${placesJson}); true;`;
+        if (Platform.OS === 'web') {
+          try {
+            (iframeRef.current?.contentWindow as any)?.updateMarkers?.(newPlaces);
+          } catch {}
+        } else {
+          webViewRef.current?.injectJavaScript(js);
+        }
+      },
+    }));
+
+    // تحديث الماركرز بسلاسة عند تغيير مصفوفة الأماكن بدون إعادة تحميل الصفحة
+    useEffect(() => {
+      if (places) {
+        const placesJson = JSON.stringify(places);
+        const js = `window.updateMarkers && window.updateMarkers(${placesJson}); true;`;
+        if (Platform.OS === 'web') {
+          try {
+            (iframeRef.current?.contentWindow as any)?.updateMarkers?.(places);
+          } catch {}
+        } else {
+          webViewRef.current?.injectJavaScript(js);
+        }
+      }
+    }, [places]);
+
+    // عرض بديل للـ Web لتسهيل المعاينة على المتصفح
     if (Platform.OS === 'web') {
       return (
-        <View style={styles.mapContainer}>
+        <View style={styles.container}>
           <iframe
             ref={iframeRef}
             srcDoc={initialHtml}
-            style={{ width: '100%', height: '100%', border: 'none' }}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+            } as any}
             title="Al-Twiza Map"
           />
         </View>
@@ -255,20 +292,23 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
     }
 
     return (
-      <View style={styles.mapContainer}>
+      <View style={styles.container}>
         <WebView
           ref={webViewRef}
           originWhitelist={['*']}
           source={{ html: initialHtml }}
-          style={styles.webView}
-          userAgent="Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 AlTwizaApp/1.0"
           onMessage={handleMessage}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
           startInLoadingState={true}
           renderLoading={() => (
-            <View style={styles.loadingContainer}>
+            <View style={styles.loaderContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
+          // User-Agent مخصص لتفادي حظر بلاطات OpenStreetMap على الهواتف
+          userAgent="Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36 AlTwizaApp/1.0"
         />
       </View>
     );
@@ -276,23 +316,22 @@ export const FreeMap = React.forwardRef<FreeMapRef, FreeMapProps>(
 );
 
 const styles = StyleSheet.create({
-  mapContainer: {
+  container: {
     flex: 1,
-    backgroundColor: '#E0E0E0',
-    overflow: 'hidden',
+    backgroundColor: '#f4f6f8',
   },
-  webView: {
+  webview: {
     flex: 1,
     backgroundColor: 'transparent',
   },
-  loadingContainer: {
+  loaderContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: '#f4f6f8',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
   },
 });

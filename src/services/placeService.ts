@@ -19,7 +19,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Place, PlaceKind, GeoLocation } from '../types';
-import { inLaghouat, Neighborhood } from '../constants/laghouat';
+import { Neighborhood } from '../constants/laghouat';
+import { ACTIVE_REGION, isLocationInRegion, OUT_OF_SERVICE_MESSAGE } from '../constants/regions';
 
 // عينات أولية للأماكن المعتمدة في الأغواط في حال عدم ربط .env بعد
 export const SEED_LAGHOUAT_PLACES: Omit<Place, 'id'>[] = [
@@ -130,8 +131,8 @@ export class PlaceService {
       throw new Error('Firebase غير متصل.');
     }
 
-    if (!inLaghouat(placeData.location)) {
-      throw new Error('الموقع المختار يقع خارج النطاق الجغرافي لبلدية الأغواط.');
+    if (!isLocationInRegion(placeData.location.latitude, placeData.location.longitude, ACTIVE_REGION)) {
+      throw new Error(OUT_OF_SERVICE_MESSAGE);
     }
 
     const now = Date.now();

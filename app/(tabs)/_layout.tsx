@@ -43,7 +43,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'الخريطة',
-          headerTitle: 'التويزة — الأغواط',
+          headerTitle: 'التويزة',
           tabBarIcon: ({ color }) => (
             <Text style={{ fontSize: 20 }}>🗺️</Text>
           ),

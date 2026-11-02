@@ -74,7 +74,7 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>انضم إلى التويزة 🤝</Text>
-          <Text style={styles.subtitle}>سجل كمواطن في الأغواط وساهم في نظافة مدينتك</Text>
+          <Text style={styles.subtitle}>سجل كمواطن وساهم في نظافة مدينتك</Text>
         </View>
 
         {errorMessage ? (

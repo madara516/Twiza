@@ -29,7 +29,12 @@ import * as Location from 'expo-location';
 import { FreeMap, FreeMapRef } from '../../src/components/FreeMap';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
-import { LAGHOUAT_CENTER, NEIGHBORHOODS, Neighborhood } from '../../src/constants/laghouat';
+import {
+  ACTIVE_REGION,
+  isLocationInRegion,
+  OUT_OF_SERVICE_MESSAGE,
+} from '../../src/constants/regions';
+import { Neighborhood } from '../../src/constants/laghouat';
 import { useAuth } from '../../src/context/AuthContext';
 import { usePlaces } from '../../src/hooks/usePlaces';
 import { Place, PlaceKind, GeoLocation } from '../../src/types';
@@ -95,6 +100,24 @@ export default function MapScreen() {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       };
+
+      // إذا كان المستخدم خارج المنطقة التجريبية النشطة، نظهر تنبيهاً لبقاً
+      if (!isLocationInRegion(coords.latitude, coords.longitude, ACTIVE_REGION)) {
+        Alert.alert(
+          'منطقة خارج التغطية حالياً',
+          OUT_OF_SERVICE_MESSAGE,
+          [
+            { text: 'حسناً', style: 'default' },
+            {
+              text: `استعراض ${ACTIVE_REGION.nameAr}`,
+              onPress: () => {
+                mapRef.current?.flyTo(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude, 14);
+              },
+            },
+          ]
+        );
+        return;
+      }
 
       setUserLocation(coords);
       mapRef.current?.flyTo(coords.latitude, coords.longitude, 16);
@@ -252,7 +275,8 @@ export default function MapScreen() {
         <FreeMap
           ref={mapRef}
           places={filteredPlaces}
-          center={LAGHOUAT_CENTER}
+          initialCenter={ACTIVE_REGION.center}
+          serviceBounds={ACTIVE_REGION.bounds}
           onSelectPlace={(place) => setSelectedPlace(place)}
         />
 
@@ -303,7 +327,7 @@ export default function MapScreen() {
             disabled={isSeeding}
           >
             <Text style={styles.adminSeedText}>
-              {isSeeding ? 'جاري البذر...' : '🌱 بذر أماكن الأغواط (Admin)'}
+              {isSeeding ? 'جاري البذر...' : '🌱 إضافة بيانات تجريبية (Admin)'}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -467,7 +491,7 @@ export default function MapScreen() {
               </View>
 
               <View style={styles.neighborhoodGrid}>
-                {NEIGHBORHOODS.map((nh) => (
+                {ACTIVE_REGION.neighborhoods.map((nh) => (
                   <TouchableOpacity
                     key={nh}
                     style={styles.neighborhoodBtn}
