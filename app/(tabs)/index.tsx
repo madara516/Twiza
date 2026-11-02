@@ -1,106 +1,303 @@
 /**
- * شاشة الخريطة (Map Tab)
+ * شاشة الخريطة الحية (Live Interactive Map - Al-Twiza Laghouat)
  * 
- * بالدارجة: هذه هي شاشة الخريطة، في المرحلة 1 تعرض معلومات الأحياء وحالة الاتصال
- * وتكون جاهزة كقاعدة لتثبيت الخريطة التفاعلية في المرحلة 2 (Phase 2).
+ * بالدارجة: هذي هي شاشة الخريطة الحية، مبنية على مزود الخرائط المجاني،
+ * فيها أزرار الفلترة الأربعة، زر تحديد الموقع الحالي عبر الـ GPS، وبطاقة معلومات المكان.
  */
 
-import React from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   View,
-  ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Location from 'expo-location';
+import { FreeMap, FreeMapRef } from '../../src/components/FreeMap';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
-import { NEIGHBORHOODS, LAGHOUAT_CENTER } from '../../src/constants/laghouat';
+import { LAGHOUAT_CENTER } from '../../src/constants/laghouat';
 import { useAuth } from '../../src/context/AuthContext';
-import { t } from '../../src/i18n';
+import { Place, PlaceKind } from '../../src/types';
+
+// عينات واقعية للأماكن المعتمدة داخل أحياء الأغواط
+const INITIAL_DEMO_PLACES: Place[] = [
+  {
+    id: 'bin-1',
+    kind: 'bin',
+    location: { latitude: 33.8015, longitude: 2.8640 },
+    neighborhood: 'وسط المدينة (البلاد)',
+    photoURL: null,
+    notes: 'حاوية بلاستيكية خضراء جديدة بجانب ساحة الشهداء.',
+    owner: 'municipality',
+    verified: true,
+    addedBy: 'admin',
+    createdAt: Date.now() - 86400000 * 2,
+    updatedAt: Date.now(),
+    status: 'ok',
+  },
+  {
+    id: 'point-1',
+    kind: 'collection_point',
+    location: { latitude: 33.8050, longitude: 2.8685 },
+    neighborhood: 'الواحات',
+    photoURL: null,
+    notes: 'نقطة تجميع كبرى بحي الواحات، تفريغ الحاويات كل يوم صباحاً.',
+    owner: 'municipality',
+    verified: true,
+    addedBy: 'admin',
+    createdAt: Date.now() - 86400000 * 5,
+    updatedAt: Date.now(),
+    status: 'ok',
+  },
+  {
+    id: 'dump-1',
+    kind: 'wild_dump',
+    location: { latitude: 33.7960, longitude: 2.8610 },
+    neighborhood: 'الوئام',
+    photoURL: null,
+    notes: 'تراكم نفايات صلبة عند المخرج الخلفي للحي، بحاجة لتدخل.',
+    owner: 'informal',
+    verified: true,
+    addedBy: 'citizen',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now(),
+    severity: 'medium',
+  },
+  {
+    id: 'bin-2',
+    kind: 'bin',
+    location: { latitude: 33.8080, longitude: 2.8710 },
+    neighborhood: 'المقام',
+    photoURL: null,
+    notes: 'حاوية معدنية قرب مسجد المقام.',
+    owner: 'municipality',
+    verified: true,
+    addedBy: 'admin',
+    createdAt: Date.now() - 86400000 * 3,
+    updatedAt: Date.now(),
+    status: 'ok',
+  },
+];
 
 export default function MapScreen() {
   const router = useRouter();
-  const { user, profile, isGuest } = useAuth();
+  const { user } = useAuth();
+  const mapRef = useRef<FreeMapRef>(null);
+
+  const [selectedFilter, setSelectedFilter] = useState<'all' | PlaceKind>('all');
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  // تصفية الأماكن المحددة حسب الفلتر
+  const filteredPlaces = useMemo(() => {
+    if (selectedFilter === 'all') return INITIAL_DEMO_PLACES;
+    return INITIAL_DEMO_PLACES.filter((p) => p.kind === selectedFilter);
+  }, [selectedFilter]);
+
+  // تحديد موقع المستخدم الحالي بالـ GPS والتنقل إليه بسلاسة
+  const handleGetCurrentLocation = async () => {
+    try {
+      setIsLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'إذن الموقع غير مفعّل',
+          'يمكنك تصفح الخريطة يدوياً واختيار الأحياء دون الحاجة للـ GPS.'
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      mapRef.current?.flyTo(
+        location.coords.latitude,
+        location.coords.longitude,
+        16
+      );
+    } catch (err) {
+      console.error('فشل جلب الموقع:', err);
+      Alert.alert('تنبيه', 'تعذر جلب موقعك الحالي، تأكد من تشغيل الـ GPS.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  // فتح الاتجاهات في تطبيق الخرائط الخارجي للهاتف
+  const handleOpenDirections = (place: Place) => {
+    const lat = place.location.latitude;
+    const lng = place.location.longitude;
+    const label = encodeURIComponent(`التويزة - ${place.neighborhood}`);
+    const url = Platform.select({
+      ios: `maps:0,0?q=${label}@${lat},${lng}`,
+      android: `geo:0,0?q=${lat},${lng}(${label})`,
+      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    });
+
+    if (url) {
+      Linking.openURL(url).catch((err) =>
+        console.error('فشل فتح تطبيق الخرائط:', err)
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* شريط حالة الدخول / الضيف */}
-        <View style={styles.authBanner}>
-          {user ? (
-            <View style={styles.userRow}>
-              <Text style={styles.welcomeText}>
-                مرحباً، {profile?.displayName || user.email} 👋
-              </Text>
-              <View style={styles.roleBadge}>
-                <Text style={styles.roleBadgeText}>
-                  {profile?.role === 'admin' ? 'مدير (Admin)' : 'مواطن'}
+      <View style={styles.container}>
+        {/* أزرار الفلترة العلوية السريعة */}
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              selectedFilter === 'all' && styles.filterChipActive,
+            ]}
+            onPress={() => setSelectedFilter('all')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'all' && styles.filterTextActive,
+              ]}
+            >
+              الكل ({INITIAL_DEMO_PLACES.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              selectedFilter === 'bin' && { backgroundColor: colors.kind.bin },
+            ]}
+            onPress={() => setSelectedFilter('bin')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'bin' && styles.filterTextActive,
+              ]}
+            >
+              سلات 🟢
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              selectedFilter === 'collection_point' && {
+                backgroundColor: colors.kind.collection_point,
+              },
+            ]}
+            onPress={() => setSelectedFilter('collection_point')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'collection_point' && styles.filterTextActive,
+              ]}
+            >
+              نقاط تجميع 🌲
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              selectedFilter === 'wild_dump' && {
+                backgroundColor: colors.kind.wild_dump,
+              },
+            ]}
+            onPress={() => setSelectedFilter('wild_dump')}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.filterText,
+                selectedFilter === 'wild_dump' && styles.filterTextActive,
+              ]}
+            >
+              نقاط سوداء 🔴
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* الخريطة التفاعلية المجانية المحمية من الحظر */}
+        <FreeMap
+          ref={mapRef}
+          places={filteredPlaces}
+          center={LAGHOUAT_CENTER}
+          onSelectPlace={(place) => setSelectedPlace(place)}
+        />
+
+        {/* زر التموضع وتحديد الموقع الحالي */}
+        <TouchableOpacity
+          style={styles.gpsFab}
+          onPress={handleGetCurrentLocation}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.gpsFabText}>{isLocating ? '⌛' : '📍'}</Text>
+        </TouchableOpacity>
+
+        {/* بطاقة تفاصيل المكان المنبثقة */}
+        {selectedPlace ? (
+          <View style={styles.placeCard}>
+            <View style={styles.placeCardHeader}>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => setSelectedPlace(null)}
+              >
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+              <View style={styles.placeTitleBox}>
+                <Text style={styles.placeTitle}>
+                  {selectedPlace.kind === 'bin' && 'سلة نفايات فردية 🟢'}
+                  {selectedPlace.kind === 'collection_point' && 'نقطة تجميع رئيسية 🌲'}
+                  {selectedPlace.kind === 'wild_dump' && 'نقطة سوداء (مكب فوضوي) 🔴'}
+                </Text>
+                <Text style={styles.placeNeighborhood}>
+                  حي: {selectedPlace.neighborhood}
                 </Text>
               </View>
             </View>
-          ) : (
-            <View style={styles.guestRow}>
-              <Text style={styles.guestText}>تتصفح حالياً كـ ضيف (Guest) 👁️</Text>
+
+            {selectedPlace.notes ? (
+              <Text style={styles.placeNotes}>{selectedPlace.notes}</Text>
+            ) : null}
+
+            <View style={styles.placeActions}>
               <TouchableOpacity
-                style={styles.loginBtnSmall}
-                onPress={() => router.push('/(auth)/login')}
+                style={styles.directionsBtn}
+                onPress={() => handleOpenDirections(selectedPlace)}
               >
-                <Text style={styles.loginBtnTextSmall}>تسجيل الدخول</Text>
+                <Text style={styles.directionsBtnText}>الاتجاهات 🧭</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportBtn}
+                onPress={() => {
+                  if (!user) {
+                    router.push('/(auth)/login');
+                  } else {
+                    router.push('/(tabs)/reports');
+                  }
+                }}
+              >
+                <Text style={styles.reportBtnText}>تبليغ عن مشكلة ⚠️</Text>
               </TouchableOpacity>
             </View>
-          )}
-        </View>
-
-        {/* بطاقة الخريطة التحضيرية لـ Phase 2 */}
-        <View style={styles.mapNoticeCard}>
-          <Text style={styles.mapIcon}>🗺️</Text>
-          <Text style={styles.mapTitle}>الخريطة التفاعلية لمدينة الأغواط</Text>
-          <Text style={styles.mapDesc}>
-            في المرحلة القادمة (المرحلة 2) ستظهر هنا الخريطة التفاعلية بالكامل مع
-            مواقع الحاويات، المكبات الفوضوية، وميزة "أقرب الأماكن لي" عبر GPS.
-          </Text>
-
-          <View style={styles.geoBox}>
-            <Text style={styles.geoTitle}>مركز بلدية الأغواط:</Text>
-            <Text style={styles.geoText}>
-              خط العرض: {LAGHOUAT_CENTER.latitude} | خط الطول: {LAGHOUAT_CENTER.longitude}
-            </Text>
           </View>
-        </View>
-
-        {/* الأحياء المغطاة */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>الأحياء المعتمدة في النسخة الأولى</Text>
-          <View style={styles.neighborhoodList}>
-            {NEIGHBORHOODS.map((neighborhood, index) => (
-              <View key={neighborhood} style={styles.chip}>
-                <Text style={styles.chipIndex}>#{index + 1}</Text>
-                <Text style={styles.chipName}>{neighborhood}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* دليل الألوان الرسمي */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>ألوان الحاويات المعتمدة</Text>
-          <View style={styles.legendRow}>
-            <View style={[styles.dot, { backgroundColor: colors.kind.bin }]} />
-            <Text style={styles.legendText}>سلة (أخضر)</Text>
-          </View>
-          <View style={styles.legendRow}>
-            <View style={[styles.dot, { backgroundColor: colors.kind.collection_point }]} />
-            <Text style={styles.legendText}>نقطة تجميع (أخضر داكن)</Text>
-          </View>
-          <View style={styles.legendRow}>
-            <View style={[styles.dot, { backgroundColor: colors.kind.wild_dump }]} />
-            <Text style={styles.legendText}>نقطة سوداء (أحمر)</Text>
-          </View>
-        </View>
-      </ScrollView>
+        ) : null}
+      </View>
     </SafeAreaView>
   );
 }
@@ -111,148 +308,138 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
-    padding: theme.spacing.md,
-    gap: theme.spacing.md,
+    flex: 1,
   },
-  authBanner: {
+  filterContainer: {
+    flexDirection: 'row-reverse',
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 10,
     backgroundColor: colors.surface,
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    zIndex: 10,
   },
-  userRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  roleBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  roleBadgeText: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  guestRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  guestText: {
-    fontSize: theme.typography.sizes.xs,
-    color: colors.textSecondary,
-  },
-  loginBtnSmall: {
-    backgroundColor: colors.primary,
+  filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: '#F0F0F0',
   },
-  loginBtnTextSmall: {
-    color: '#FFF',
+  filterChipActive: {
+    backgroundColor: colors.primary,
+  },
+  filterText: {
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  mapNoticeCard: {
-    backgroundColor: '#E8F5E9',
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-  },
-  mapIcon: {
-    fontSize: 48,
-    marginBottom: theme.spacing.sm,
-  },
-  mapTitle: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: 'bold',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  mapDesc: {
-    fontSize: theme.typography.sizes.sm,
     color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: theme.spacing.xs,
   },
-  geoBox: {
-    marginTop: theme.spacing.md,
+  filterTextActive: {
+    color: '#FFFFFF',
+  },
+  gpsFab: {
+    position: 'absolute',
+    top: 65,
+    left: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: colors.surface,
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-    width: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  geoTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  geoText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
     borderWidth: 1,
     borderColor: colors.border,
+    zIndex: 20,
   },
-  sectionTitle: {
-    fontSize: theme.typography.sizes.md,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'right',
-    marginBottom: theme.spacing.sm,
+  gpsFabText: {
+    fontSize: 22,
   },
-  neighborhoodList: {
-    gap: theme.spacing.xs,
+  placeCard: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    zIndex: 30,
   },
-  chip: {
-    flexDirection: 'row-reverse',
+  placeCardHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    alignItems: 'flex-start',
   },
-  chipIndex: {
-    fontSize: 12,
+  closeBtn: {
+    padding: 6,
+  },
+  closeBtnText: {
+    fontSize: 16,
     color: colors.textSecondary,
     fontWeight: 'bold',
   },
-  chipName: {
-    fontSize: 14,
+  placeTitleBox: {
+    alignItems: 'flex-end',
+    flex: 1,
+  },
+  placeTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
     color: colors.text,
+  },
+  placeNeighborhood: {
+    fontSize: 12,
+    color: colors.primary,
     fontWeight: '600',
+    marginTop: 2,
   },
-  legendRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendText: {
+  placeNotes: {
     fontSize: 13,
     color: colors.textSecondary,
+    textAlign: 'right',
+    marginVertical: 8,
+    lineHeight: 18,
+  },
+  placeActions: {
+    flexDirection: 'row-reverse',
+    gap: 8,
+    marginTop: 6,
+  },
+  directionsBtn: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  directionsBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  reportBtn: {
+    flex: 1,
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  reportBtnText: {
+    color: '#E65100',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });
