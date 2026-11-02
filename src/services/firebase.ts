@@ -1,8 +1,9 @@
 /**
- * إعدادات وتهيئة Firebase (Auth, Firestore, Storage)
+ * إعدادات وتهيئة Firebase (Auth, Firestore)
  * 
- * بالدارجة: هذا هو المحرك تاع الفايربيز كامل، نربطو بيه قاعدة البيانات (Firestore)،
- * نظام الحسابات (Auth) مع حفظ الجلسة في التيليفون (AsyncStorage)، وتخزين الصور (Storage).
+ * بالدارجة: هذا هو المحرك تاع الفايربيز، نربطو بيه قاعدة البيانات (Firestore)،
+ * ونظام الحسابات (Auth) مع حفظ الجلسة في التيليفون (AsyncStorage).
+ * وتخزين الصور تم تحويله بالكامل إلى Cloudinary المجاني 100%.
  */
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
@@ -13,14 +14,12 @@ import {
   Auth,
 } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
 };
@@ -34,7 +33,6 @@ export const isFirebaseConfigured = Boolean(
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-let storage: FirebaseStorage | null = null;
 
 if (isFirebaseConfigured) {
   try {
@@ -51,7 +49,6 @@ if (isFirebaseConfigured) {
     }
 
     db = getFirestore(app);
-    storage = getStorage(app);
   } catch (error) {
     console.error('فشل في تهيئة Firebase:', error);
   }
@@ -61,4 +58,4 @@ if (isFirebaseConfigured) {
   );
 }
 
-export { app, auth, db, storage };
+export { app, auth, db };

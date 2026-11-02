@@ -1,14 +1,19 @@
 /**
- * خدمة تخزين ورفع الصور (Storage Service)
+ * خدمة تخزين ورفع الصور عبر Cloudinary (100% Free Unsigned Upload API)
  * 
- * بالدارجة: هذا السيرفيس مسؤول على التقاط الصور من الكاميرا ولا من الـ Galerie،
- * والتأكد بلي الحجم تاعها أقل من 5 ميغابايت (كما تفرضه Storage Rules)،
- * ومن بعد يرفعها في مجلد المستخدم الخاص places/{uid}/... ويرجع رابط التحميل الرسمي.
+ * بالدارجة: استغنينا تماماً على Firebase Storage لي يتطلب خطة مدفوعة،
+ * وبدلناه بخدمة Cloudinary المجانية 100% والسريعة جداً.
+ * نرفعو الصورة مباشرة بـ POST FormData ونحفظو رابط data.secure_url في Firestore.
  */
 
+import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase';
+
+export const CLOUDINARY_CONFIG = {
+  cloudName: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || 'w0xj56ua',
+  uploadPreset: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'twizza_uploads',
+  apiUrl: 'https://api.cloudinary.com/v1_1/w0xj56ua/image/upload',
+};
 
 export class StorageService {
   /**
@@ -33,7 +38,6 @@ export class StorageService {
       }
 
       const asset = result.assets[0];
-      // فحص الحجم إذا كان متاحاً (أقل من 5 ميغابايت)
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
         throw new Error('حجم الصورة كبير جداً (يجب أن يكون أقل من 5 ميغابايت).');
       }
@@ -79,41 +83,43 @@ export class StorageService {
   }
 
   /**
-   * رفع صورة المكان إلى Firebase Storage تحت مسار places/{uid}/{filename}
+   * رفع الصورة عبر Cloudinary Unsigned Upload API
+   * وإرجاع الرابط الآمن (data.secure_url) لحفظه مباشرة في وثيقة Firestore
    */
-  static async uploadPlacePhoto(uri: string, uid: string): Promise<string> {
-    if (!storage) {
-      console.warn('Firebase Storage غير مهيأ، سيتم إرجاع الرابط المحلي.');
-      return uri;
-    }
-
+  static async uploadPlacePhoto(uri: string, uid?: string): Promise<string> {
     try {
-      // قراءة محتوى الصورة كـ Blob متوافق مع React Native
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const formData = new FormData();
 
-      // التحقق الصارم من الحجم (< 5MB)
-      if (blob.size > 5 * 1024 * 1024) {
-        throw new Error('حجم الصورة يتجاوز الحد الأقصى المسموح به (5 ميغابايت).');
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append('file', blob, `twizza_${Date.now()}.jpg`);
+      } else {
+        formData.append('file', {
+          uri,
+          type: 'image/jpeg',
+          name: `twizza_${Date.now()}.jpg`,
+        } as any);
       }
 
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
-      const storageRef = ref(storage, `places/${uid}/${fileName}`);
+      formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
 
-      // حماية بمهلة 8 ثوانٍ لتفادي تعليق التطبيق إذا لم تكن خدمة Storage مفعلة بعد في Console
-      const uploadPromise = uploadBytes(storageRef, blob, {
-        contentType: 'image/jpeg',
+      const response = await fetch(CLOUDINARY_CONFIG.apiUrl, {
+        method: 'POST',
+        body: formData,
       });
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('تجاوزت محاولة رفع الصورة المهلة المحددة (Storage timeout).')), 8000)
-      );
 
-      await Promise.race([uploadPromise, timeoutPromise]);
+      const data = await response.json();
 
-      const downloadURL = await getDownloadURL(storageRef);
-      return downloadURL;
+      if (!response.ok || !data.secure_url) {
+        const errMsg = data.error?.message || 'فشل رفع الصورة إلى Cloudinary.';
+        console.error('فشل في استجابة Cloudinary:', errMsg);
+        throw new Error(errMsg);
+      }
+
+      return data.secure_url;
     } catch (error: any) {
-      console.warn('تعذر رفع الصورة إلى Firebase Storage:', error?.message || error);
+      console.error('خطأ أثناء رفع الصورة إلى Cloudinary:', error?.message || error);
       throw error;
     }
   }
