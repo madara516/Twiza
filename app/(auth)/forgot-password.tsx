@@ -63,6 +63,9 @@ export default function ForgotPasswordScreen() {
         {successMessage ? (
           <View style={styles.successBox}>
             <Text style={styles.successText}>✅ {successMessage}</Text>
+            <Text style={styles.successNote}>
+              💡 ملاحظة مهمة: يرجى تفقد مجلد الرسائل غير المرغوب فيها (Spam / Courrier indésirable) في بريدك الإلكتروني في حال تأخر ظهور الرسالة.
+            </Text>
           </View>
         ) : null}
 
@@ -151,6 +154,13 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.sizes.xs,
     textAlign: 'right',
     fontWeight: '600',
+  },
+  successNote: {
+    color: '#2E7D32',
+    fontSize: 11,
+    textAlign: 'right',
+    marginTop: 6,
+    lineHeight: 16,
   },
   errorBox: {
     backgroundColor: '#FFEBEE',

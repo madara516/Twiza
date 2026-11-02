@@ -348,18 +348,13 @@ export default function MapScreen() {
             )}
           </TouchableOpacity>
 
-          {/* زر قائمة "أقرب الأماكن لي" */}
+          {/* زر طلب حاوية في الحي */}
           <TouchableOpacity
-            style={[styles.fabBtn, styles.nearestFab]}
-            onPress={() => {
-              if (!userLocation) {
-                handleGetCurrentLocation();
-              }
-              setShowNearestModal(true);
-            }}
+            style={[styles.fabBtn, styles.needBinSideFab]}
+            onPress={handleNeedBinPress}
             activeOpacity={0.85}
           >
-            <Text style={styles.fabIcon}>🎯</Text>
+            <Text style={styles.fabIcon}>🗑️</Text>
           </TouchableOpacity>
         </View>
 
@@ -385,14 +380,19 @@ export default function MapScreen() {
           </View>
         ) : null}
 
-        {/* زر "نحتاجو حاوية هنا" التفاعلي */}
+        {/* زر "أقرب سلة" التفاعلي العائم في الأسفل */}
         {!selectedPlace ? (
           <TouchableOpacity
-            style={styles.needBinFab}
-            onPress={handleNeedBinPress}
+            style={styles.nearestBottomFab}
+            onPress={() => {
+              if (!userLocation) {
+                handleGetCurrentLocation();
+              }
+              setShowNearestModal(true);
+            }}
             activeOpacity={0.85}
           >
-            <Text style={styles.needBinFabText}>نحتاجو حاوية هنا 🗑️</Text>
+            <Text style={styles.nearestBottomFabText}>أقرب سلة 🎯</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -775,6 +775,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  needBinSideFab: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#C8E6C9',
+  },
   nearestFab: {
     backgroundColor: '#E8F5E9',
     borderColor: '#C8E6C9',
@@ -1053,6 +1057,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  nearestBottomFab: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    zIndex: 25,
+  },
+  nearestBottomFabText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   needBinFab: {
     position: 'absolute',
