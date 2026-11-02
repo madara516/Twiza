@@ -82,6 +82,18 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: 'الإدارة',
+          headerTitle: 'لوحة تحكم المشرف',
+          href: role === 'admin' ? '/admin' : null,
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 20 }}>🛡️</Text>
+          ),
+        }}
+      />
     </Tabs>
   );
 }

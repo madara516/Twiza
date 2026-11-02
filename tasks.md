@@ -122,14 +122,14 @@ sees it -> reporter confirms.
 
 ## Phase 5 — "We need a bin here" and the admin screen
 
-- [ ] "We need a bin here" (one vote per user per neighborhood)
-- [ ] Rules for `needBinVotes` (id = `${neighborhood}_${uid}`, admin read)
-- [ ] Admin tab visible only for `role=='admin'` (rules still enforce it)
-- [ ] Approve or reject pending places
-- [ ] Change report status (writes `history` with `by`, `at`, `note`)
-- [ ] Demand per neighborhood (votes) and report counts
-- [ ] Ban / unban a user (admin only)
-- [ ] Type check passes; commit
+- [x] "We need a bin here" (one vote per user per neighborhood)
+- [x] Rules for `needBinVotes` (id = `${neighborhood}_${uid}`, admin read)
+- [x] Admin tab visible only for `role=='admin'` (rules still enforce it)
+- [x] Approve or reject pending places
+- [x] Change report status (writes `history` with `by`, `at`, `note`)
+- [x] Demand per neighborhood (votes) and report counts
+- [x] Ban / unban a user (admin only)
+- [x] Type check passes; commit
 
 **Done when:** I can approve places, change statuses and see demand per
 neighborhood.

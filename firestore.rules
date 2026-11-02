@@ -151,7 +151,7 @@ service cloud.firestore {
 
     // --- تصويت طلب حاوية في الحي (needBinVotes) ---
     match /needBinVotes/{voteId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.uid == request.auth.uid);
       allow create: if isAuthenticated() &&
         isNotBanned() &&
         voteId == (request.resource.data.neighborhood + '_' + request.auth.uid) &&

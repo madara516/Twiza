@@ -32,6 +32,7 @@ import { theme } from '../../src/theme';
 import {
   ACTIVE_REGION,
   isLocationInRegion,
+  getApproximateNeighborhood,
   OUT_OF_SERVICE_MESSAGE,
 } from '../../src/constants/regions';
 import { Neighborhood } from '../../src/constants/laghouat';
@@ -40,6 +41,7 @@ import { usePlaces } from '../../src/hooks/usePlaces';
 import { Place, PlaceKind, GeoLocation } from '../../src/types';
 import { PlaceWithDistance } from '../../src/utils/haversine';
 import { PlaceService } from '../../src/services/placeService';
+import { VoteService } from '../../src/services/voteService';
 
 export default function MapScreen() {
   const router = useRouter();
@@ -52,6 +54,13 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [showNearestModal, setShowNearestModal] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
+
+  // حالات التصويت لميزة "نحتاجو حاوية هنا"
+  const [showNeedBinModal, setShowNeedBinModal] = useState<boolean>(false);
+  const [selectedVoteNeighborhood, setSelectedVoteNeighborhood] = useState<Neighborhood>(
+    ACTIVE_REGION.neighborhoods[0] as Neighborhood
+  );
+  const [isSubmittingVote, setIsSubmittingVote] = useState<boolean>(false);
 
   // حالات تأكيدات "ما زالت هنا" للمكان المختار
   const [confirmStats, setConfirmStats] = useState<{ count: number; lastConfirmedAt: number | null }>({
@@ -93,6 +102,36 @@ export default function MapScreen() {
       Alert.alert('تنبيه', err.message || 'تعذر تسجيل التأكيد.');
     } finally {
       setIsConfirming(false);
+    }
+  };
+
+  const handleNeedBinPress = () => {
+    if (!user) {
+      Alert.alert('تسجيل الدخول مطلوب', 'يرجى تسجيل الدخول للتصويت على طلب حاوية في حيك.');
+      router.push('/(auth)/login');
+      return;
+    }
+    // تحديد الحي تلقائياً من موقع الـ GPS إذا كان متاحاً
+    if (userLocation) {
+      const autoNh = getApproximateNeighborhood(userLocation.latitude, userLocation.longitude);
+      setSelectedVoteNeighborhood(autoNh as Neighborhood);
+    } else {
+      setSelectedVoteNeighborhood(ACTIVE_REGION.neighborhoods[0] as Neighborhood);
+    }
+    setShowNeedBinModal(true);
+  };
+
+  const handleSubmitBinVote = async () => {
+    if (!user || !selectedVoteNeighborhood) return;
+    try {
+      setIsSubmittingVote(true);
+      await VoteService.voteForBin(selectedVoteNeighborhood, user.uid);
+      setShowNeedBinModal(false);
+      Alert.alert('شكراً لك! 🎉', `تم تسجيل صوتك لطلب حاوية في حي "${selectedVoteNeighborhood}" بنجاح. صوتك يوصل للبلدية!`);
+    } catch (err: any) {
+      Alert.alert('تنبيه', err.message || 'تعذر تسجيل التصويت.');
+    } finally {
+      setIsSubmittingVote(false);
     }
   };
 
@@ -342,6 +381,17 @@ export default function MapScreen() {
           </View>
         ) : null}
 
+        {/* زر "نحتاجو حاوية هنا" التفاعلي */}
+        {!selectedPlace ? (
+          <TouchableOpacity
+            style={styles.needBinFab}
+            onPress={handleNeedBinPress}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.needBinFabText}>نحتاجو حاوية هنا 🗑️</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* بطاقة تفاصيل المكان المنبثقة */}
         {selectedPlace ? (
           <View style={styles.placeCard}>
@@ -502,6 +552,75 @@ export default function MapScreen() {
                   )}
                 />
               )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* نافذة التصويت لطلب حاوية في الحي ("نحتاجو حاوية هنا") */}
+        <Modal
+          visible={showNeedBinModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowNeedBinModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={() => setShowNeedBinModal(false)}
+                >
+                  <Text style={styles.closeBtnText}>✕</Text>
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>نحتاجو حاوية هنا 🗑️</Text>
+              </View>
+
+              <Text style={styles.needBinDescription}>
+                صوتك يوصل للبلدية! نجمعو أصوات المواطنين في كل حي باش نبيّنو للمسؤولين وين كاين نقص حقيقي في الحاويات ونقاط الجمع.
+              </Text>
+
+              <Text style={styles.needBinSectionTitle}>اختر الحي المراد التصويت له:</Text>
+              <View style={styles.needBinChipsGrid}>
+                {ACTIVE_REGION.neighborhoods.map((nh) => {
+                  const isSelected = selectedVoteNeighborhood === nh;
+                  return (
+                    <TouchableOpacity
+                      key={nh}
+                      style={[
+                        styles.needBinChip,
+                        isSelected && styles.needBinChipActive,
+                      ]}
+                      onPress={() => setSelectedVoteNeighborhood(nh as Neighborhood)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.needBinChipText,
+                          isSelected && styles.needBinChipTextActive,
+                        ]}
+                      >
+                        {nh}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.submitVoteBtn,
+                  isSubmittingVote && styles.submitVoteBtnDisabled,
+                ]}
+                onPress={handleSubmitBinVote}
+                disabled={isSubmittingVote}
+                activeOpacity={0.85}
+              >
+                {isSubmittingVote ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.submitVoteBtnText}>تأكيد التصويت الآن ✍️</Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -845,5 +964,83 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  needBinFab: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    zIndex: 25,
+  },
+  needBinFabText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  needBinDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  needBinSectionTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'right',
+    marginBottom: 10,
+  },
+  needBinChipsGrid: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  needBinChip: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  needBinChipActive: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#2E7D32',
+  },
+  needBinChipText: {
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  needBinChipTextActive: {
+    color: '#2E7D32',
+    fontWeight: 'bold',
+  },
+  submitVoteBtn: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitVoteBtnDisabled: {
+    opacity: 0.6,
+  },
+  submitVoteBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

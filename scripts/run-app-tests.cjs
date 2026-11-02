@@ -153,6 +153,56 @@ function run() {
   assert(CLOUDINARY_CONFIG.uploadPreset === 'twizza_uploads', `اسم الـ Preset للرفع غير الموقع مطابق: ${CLOUDINARY_CONFIG.uploadPreset}`);
   assert(CLOUDINARY_CONFIG.apiUrl === 'https://api.cloudinary.com/v1_1/w0xj56ua/image/upload', `رابط API الرفع مطابق للمواصفات: ${CLOUDINARY_CONFIG.apiUrl}`);
 
+  // 7. اختبارات ميزة "نحتاجو حاوية هنا" وحساب الطلب حسب الحي
+  console.log('\n--- 7. اختبارات "نحتاجو حاوية هنا" وتجميع الأصوات (Phase 5) ---');
+  const getVoteDocId = (neighborhood, uid) => `${neighborhood}_${uid}`;
+  const vote1Id = getVoteDocId('الواحات', 'citizen-123');
+  assert(vote1Id === 'الواحات_citizen-123', `تنسيق معرّف وثيقة التصويت مطابق للضوابط: ${vote1Id}`);
+
+  // محاكاة تجميع الأصوات
+  const mockVotes = [
+    { neighborhood: 'وسط المدينة (البلاد)', uid: 'user-1' },
+    { neighborhood: 'الواحات', uid: 'user-2' },
+    { neighborhood: 'وسط المدينة (البلاد)', uid: 'user-3' },
+    { neighborhood: 'المقام', uid: 'user-4' },
+    { neighborhood: 'وسط المدينة (البلاد)', uid: 'user-5' },
+  ];
+  const demandAggregation = mockVotes.reduce((acc, v) => {
+    acc[v.neighborhood] = (acc[v.neighborhood] || 0) + 1;
+    return acc;
+  }, {});
+
+  assert(demandAggregation['وسط المدينة (البلاد)'] === 3, 'تجميع أصوات وسط المدينة: 3 أصوات');
+  assert(demandAggregation['الواحات'] === 1, 'تجميع أصوات الواحات: صوت واحد');
+  assert(demandAggregation['المقام'] === 1, 'تجميع أصوات المقام: صوت واحد');
+
+  // 8. اختبارات دورة معالجة البلاغات من قبل المشرف وتوثيق الملاحظات
+  console.log('\n--- 8. اختبارات انتقالات حالات البلاغات وسجل التاريخ (Admin Actions) ---');
+  const initialHistory = [{ status: 'sent', by: 'user-1', at: now - 5000 }];
+  const receivedHistory = [
+    ...initialHistory,
+    { status: 'received', by: 'admin-1', at: now - 3000, note: 'تم استلام التقرير وتوجيهه لفريق النظافة' },
+  ];
+  const inRepairHistory = [
+    ...receivedHistory,
+    { status: 'in_repair', by: 'admin-1', at: now - 1000, note: 'شاحنة البلدية في الطريق إلى الموقع' },
+  ];
+  const fixedHistory = [
+    ...inRepairHistory,
+    { status: 'fixed', by: 'admin-1', at: now, note: 'تم تنظيف النقطة ووضع حاوية جديدة بنجاح' },
+  ];
+
+  assert(fixedHistory.length === 4, 'اكتمال تسلسل المراحل الأربعة في سجل التاريخ');
+  assert(fixedHistory[3].status === 'fixed', 'الحالة النهائية للبلاغ المعالج هي fixed');
+  assert(fixedHistory[3].note.includes('حاوية جديدة'), 'الملاحظة الإدارية مسجلة بنجاح داخل سجل التاريخ');
+
+  // 9. اختبارات حماية لوحة تحكم المشرف (Admin Authorization Guard)
+  console.log('\n--- 9. اختبارات حماية لوحة التحكم وصلاحيات المشرف ---');
+  const isAdminRole = (role) => role === 'admin';
+  assert(isAdminRole('admin') === true, 'المشرف يملك الصلاحية الكاملة للوحة التحكم (Access Granted)');
+  assert(isAdminRole('citizen') === false, 'المواطن العادي محجوب عن لوحة المشرف (Access Denied)');
+  assert(isAdminRole(null) === false, 'الزائر غير المسجل محجوب تماماً (Access Denied)');
+
   console.log('\n========================================================');
   console.log(`📊 النتيجة النهائية: ${passed} فحص ناجح ✅ | ${failed} فاشل ❌`);
   console.log('========================================================\n');

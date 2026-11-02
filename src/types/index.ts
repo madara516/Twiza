@@ -76,3 +76,10 @@ export interface PlaceReport {
   createdAt: number;
   updatedAt: number;
 }
+
+export interface NeedBinVote {
+  id: string; // `${neighborhood}_${uid}`
+  neighborhood: Neighborhood;
+  uid: string;
+  createdAt: number;
+}
