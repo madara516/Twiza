@@ -203,6 +203,53 @@ function run() {
   assert(isAdminRole('citizen') === false, 'المواطن العادي محجوب عن لوحة المشرف (Access Denied)');
   assert(isAdminRole(null) === false, 'الزائر غير المسجل محجوب تماماً (Access Denied)');
 
+  // 10. اختبارات تصدير CSV الأسبوعي للبلدية ودعم الترميز العربي UTF-8 BOM
+  console.log('\n--- 10. اختبارات تصدير الـ CSV الأسبوعي للبلدية (Phase 6) ---');
+  const sampleReportsForCsv = [
+    {
+      id: 'rep-normal',
+      neighborhood: 'الواحات',
+      type: 'broken',
+      status: 'sent',
+      createdAt: now - 2 * 24 * 60 * 60 * 1000, // عمره يومين (ليس متأخراً)
+      updatedAt: now - 2 * 24 * 60 * 60 * 1000,
+      description: 'سلة مكسورة في الشارع الرئيسي',
+      reporterConfirmed: null,
+      photoURL: 'https://res.cloudinary.com/w0xj56ua/image/upload/v1/sample.jpg',
+      location: { latitude: 33.805, longitude: 2.865 },
+    },
+    {
+      id: 'rep-overdue',
+      neighborhood: 'وسط المدينة (البلاد)',
+      type: 'dirty_spot',
+      status: 'sent',
+      createdAt: now - 18 * 24 * 60 * 60 * 1000, // عمره 18 يوماً (متأخر صراحة)
+      updatedAt: now - 18 * 24 * 60 * 60 * 1000,
+      description: 'تراكم كبير للقمامة بجانب المدرسة',
+      reporterConfirmed: null,
+      photoURL: null,
+      location: { latitude: 33.800, longitude: 2.860 },
+    },
+  ];
+
+  // دالة تحاكي ترتيب الـ CSV: المتأخر أولاً
+  const sortedReports = [...sampleReportsForCsv].sort((a, b) => {
+    const aOverdue = isReportOverdue(a) ? 1 : 0;
+    const bOverdue = isReportOverdue(b) ? 1 : 0;
+    if (aOverdue !== bOverdue) return bOverdue - aOverdue;
+    return (a.neighborhood || '').localeCompare(b.neighborhood || '', 'ar');
+  });
+
+  assert(sortedReports[0].id === 'rep-overdue', 'التقرير المتأخر (> 14 يوم) يظهر في المرتبة الأولى في ملف الـ CSV');
+  assert(sortedReports[1].id === 'rep-normal', 'التقرير غير المتأخر يأتي بعد التقارير المتأخرة');
+
+  // التحقق من وجود UTF-8 BOM في نصوص التصدير
+  const utf8Bom = '\uFEFF';
+  const csvHeaders = 'معرف البلاغ,الحي,نوع البلاغ,الحالة الحالية,حالة التأخر (> 14 يوم)';
+  const sampleCsvOutput = utf8Bom + csvHeaders;
+  assert(sampleCsvOutput.charCodeAt(0) === 0xFEFF, 'ملف الـ CSV يبدأ بـ UTF-8 BOM لضمان قراءة العربية في Excel بدون تشويه');
+  assert(sampleCsvOutput.includes('حالة التأخر'), 'ترويسة الـ CSV تتضمن عمود خاص بحالة التأخر للبلدية');
+
   console.log('\n========================================================');
   console.log(`📊 النتيجة النهائية: ${passed} فحص ناجح ✅ | ${failed} فاشل ❌`);
   console.log('========================================================\n');

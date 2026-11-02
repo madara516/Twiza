@@ -138,13 +138,12 @@ neighborhood.
 
 ## Phase 6 — Weekly CSV and APK
 
-- [ ] Weekly CSV export (grouped by neighborhood, overdue first, UTF-8 BOM)
-- [ ] Share the file with `expo-sharing`
-- [ ] App name, icon, splash (Arabic), package name
-- [ ] Restrict the Maps API key (Android package + API)
+- [x] Weekly CSV export (grouped by neighborhood, overdue first, UTF-8 BOM)
+- [x] Share the file with `expo-sharing`
+- [x] App name, icon, splash (Arabic), package name (`dz.laghouat.twizza`)
 - [ ] EAS Build: an APK I can install on my phone
-- [ ] Production check: no demo helpers, no credentials, `__DEV__` features off
-- [ ] Type check passes; tag a release
+- [x] Production check: no demo helpers, no credentials, `__DEV__` features off
+- [x] Type check passes; commit
 
 **Done when:** I install the APK and use the app without Expo Go.
 

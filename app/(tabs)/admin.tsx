@@ -31,6 +31,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { AdminService, AdminOverviewStats } from '../../src/services/adminService';
 import { VoteService } from '../../src/services/voteService';
 import { ReportService } from '../../src/services/reportService';
+import { CsvExportService } from '../../src/services/csvExportService';
 import { Place, PlaceReport, ReportStatus, UserProfile } from '../../src/types';
 
 type AdminTab = 'places' | 'reports' | 'demand' | 'users';
@@ -63,6 +64,25 @@ export default function AdminScreen() {
   const [actionNextStatus, setActionNextStatus] = useState<ReportStatus | null>(null);
   const [adminNote, setAdminNote] = useState<string>('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
+  const [isExportingCsv, setIsExportingCsv] = useState<boolean>(false);
+
+  // تصدير ومشاركة التقرير الأسبوعي بصيغة CSV للبلدية
+  const handleExportCsv = async () => {
+    if (reports.length === 0) {
+      Alert.alert('تنبيه', 'لا توجد بلاغات مسجلة لتصديرها حالياً.');
+      return;
+    }
+
+    try {
+      setIsExportingCsv(true);
+      await CsvExportService.exportAndShareWeeklyReports(reports);
+    } catch (err: any) {
+      console.error('خطأ في تصدير تقرير CSV:', err);
+      Alert.alert('خطأ', err.message || 'تعذر تصدير تقرير الـ CSV.');
+    } finally {
+      setIsExportingCsv(false);
+    }
+  };
 
   // جلب كافة بيانات لوحة التحكم
   const fetchDashboardData = useCallback(async () => {
@@ -379,9 +399,24 @@ export default function AdminScreen() {
             {/* 2. قسم إدارة البلاغات والشكاوى */}
             {activeTab === 'reports' && (
               <View>
-                <Text style={styles.sectionTitle}>
-                  إدارة البلاغات ومتابعة الصيانة ({filteredReports.length})
-                </Text>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>
+                    إدارة البلاغات ومتابعة الصيانة ({filteredReports.length})
+                  </Text>
+                  
+                  {/* زر تصدير التقرير الأسبوعي للبلدية بصيغة CSV */}
+                  <TouchableOpacity
+                    style={[styles.exportCsvBtn, isExportingCsv && styles.exportCsvBtnDisabled]}
+                    onPress={handleExportCsv}
+                    disabled={isExportingCsv}
+                  >
+                    {isExportingCsv ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.exportCsvBtnText}>📊 تصدير للبلدية (CSV)</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
 
                 {/* فلاتر الحالات */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -778,6 +813,29 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: colors.textSecondary,
     fontSize: 13,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  exportCsvBtn: {
+    backgroundColor: '#1B5E20',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    elevation: 2,
+  },
+  exportCsvBtnDisabled: {
+    opacity: 0.6,
+  },
+  exportCsvBtnText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   sectionTitle: {
     fontSize: 15,
