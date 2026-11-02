@@ -18,7 +18,7 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Place, PlaceKind, GeoLocation } from '../types';
+import { Place, PlaceKind, GeoLocation, WildDumpSeverity } from '../types';
 import { Neighborhood } from '../constants/laghouat';
 import { ACTIVE_REGION, isLocationInRegion, OUT_OF_SERVICE_MESSAGE } from '../constants/regions';
 
@@ -182,6 +182,76 @@ export class PlaceService {
       return null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * إضافة مكان جديد من قِبل المواطن
+   * 
+   * يطبق القيود الصارمة:
+   * 1. verified = false إجبارياً
+   * 2. owner = 'informal' إجبارياً
+   * 3. التحقق من وقوع الموقع داخل النطاق الجغرافي للمنطقة النشطة
+   */
+  static async createPlace(
+    placeData: {
+      kind: PlaceKind;
+      location: GeoLocation;
+      neighborhood: Neighborhood;
+      photoURL: string | null;
+      notes?: string;
+      severity?: WildDumpSeverity;
+      schedule?: string;
+      accepts?: string[];
+    },
+    citizenUid: string
+  ): Promise<string> {
+    if (!db) {
+      throw new Error('Firebase غير متصل. يرجى مراجعة الإعدادات.');
+    }
+
+    if (!isLocationInRegion(placeData.location.latitude, placeData.location.longitude, ACTIVE_REGION)) {
+      throw new Error(OUT_OF_SERVICE_MESSAGE);
+    }
+
+    const now = Date.now();
+    const docData: Omit<Place, 'id'> = {
+      ...placeData,
+      verified: false, // غير موثق حتى توافق عليه البلدية
+      owner: 'informal', // ملكية غير رسمية/مقدمة من مواطن
+      addedBy: citizenUid,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const docRef = await addDoc(collection(db, 'places'), docData);
+    return docRef.id;
+  }
+
+  /**
+   * جلب الأماكن التي أضافها المواطن الحالي (سواء كانت موثقة أو قيد المراجعة)
+   */
+  static async getMyPlaces(citizenUid: string): Promise<Place[]> {
+    if (!db) return [];
+
+    try {
+      const placesCol = collection(db, 'places');
+      const q = query(
+        placesCol,
+        where('addedBy', '==', citizenUid)
+      );
+      const snapshot = await getDocs(q);
+
+      const list = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Place, 'id'>),
+      }));
+
+      // ترتيب محلي حسب تاريخ الإضافة تنازلياً لتفادي الحاجة لـ Composite Index
+      return list.sort((a, b) => b.createdAt - a.createdAt);
+    } catch (error) {
+      console.error('خطأ في جلب أماكن المستخدم:', error);
+      return [];
     }
   }
 }

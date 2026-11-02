@@ -25,6 +25,7 @@ export type PlaceKind = 'bin' | 'collection_point' | 'wild_dump';
 export type BinStatus = 'ok' | 'broken' | 'full' | 'missing';
 export type WildDumpStatus = 'active' | 'cleaned';
 export type WildDumpSeverity = 'small' | 'medium' | 'large';
+export type Severity = WildDumpSeverity;
 
 export interface GeoLocation {
   latitude: number;

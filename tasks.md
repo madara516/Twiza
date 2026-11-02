@@ -85,16 +85,16 @@ my phone.
 
 ## Phase 3 — Add a place
 
-- [ ] Form: kind, photo (camera/gallery), GPS with draggable pin, neighborhood,
+- [x] Form: kind, photo (camera/gallery), GPS with draggable pin, neighborhood,
       notes, severity (wild dump), schedule/accepts (collection point)
-- [ ] Reject locations outside Laghouat (app AND rules `inLaghouat`)
-- [ ] Upload photo to `places/{uid}/...`, then create the place
+- [x] Reject locations outside Laghouat (app AND rules `inLaghouat`)
+- [x] Upload photo to `places/{uid}/...`, then create the place
       (`verified=false`, `owner='informal'`)
-- [ ] "Waiting for approval" screen/message
-- [ ] "My places" list (my own unverified places visible to me)
-- [ ] Rules: `places` create with all validations
-- [ ] Emulator cases: outside box, wrong owner, verified=true by a citizen, etc.
-- [ ] Type check passes; commit
+- [x] "Waiting for approval" screen/message
+- [x] "My places" list (my own unverified places visible to me)
+- [x] Rules: `places` create with all validations
+- [x] Emulator cases: outside box, wrong owner, verified=true by a citizen, etc.
+- [x] Type check passes; commit
 
 **Done when:** a citizen adds a place, it is hidden from others, and the admin
 (me) sees it as pending.
