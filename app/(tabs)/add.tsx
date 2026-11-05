@@ -247,9 +247,9 @@ export default function AddScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Text style={styles.headerBackIcon}>‹</Text>
+          <AppIcon name="chevron_right" size={20} color="#1B4D3E" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Report</Text>
+        <Text style={styles.headerTitle}>إضافة بلاغ أو مكان</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -274,8 +274,8 @@ export default function AddScreen() {
               <View style={styles.cameraIconCircle}>
                 <AppIcon name="camera" size={32} color="#15803D" />
               </View>
-              <Text style={styles.addPhotoTitle}>Add a photo</Text>
-              <Text style={styles.addPhotoSubtitle}>(Required / اختياري)</Text>
+              <Text style={styles.addPhotoTitle}>إضافة صورة توضيحية</Text>
+              <Text style={styles.addPhotoSubtitle}>تساعد فرق التدخل والمتطوعين في التوثيق والوصول</Text>
               <View style={styles.photoActionsRow}>
                 <TouchableOpacity
                   style={styles.photoActionBtn}
@@ -297,7 +297,7 @@ export default function AddScreen() {
         </View>
 
         {/* 3. اختيار الفئة (Category) */}
-        <Text style={styles.fieldLabel}>Category</Text>
+        <Text style={styles.fieldLabel}>الفئة</Text>
         <View style={styles.kindRow}>
           <TouchableOpacity
             style={[
@@ -307,7 +307,7 @@ export default function AddScreen() {
             onPress={() => setKind('bin')}
             activeOpacity={0.8}
           >
-            <AppIcon name="bin" size={22} color={kind === 'bin' ? colors.primary : '#64748B'} />
+            <AppIcon name="bin" size={24} color={kind === 'bin' ? colors.primary : '#64748B'} />
             <Text style={[styles.kindLabel, kind === 'bin' && styles.kindLabelActive]}>
               حاوية نفايات
             </Text>
@@ -321,7 +321,7 @@ export default function AddScreen() {
             onPress={() => setKind('collection_point')}
             activeOpacity={0.8}
           >
-            <AppIcon name="map" size={22} color={kind === 'collection_point' ? colors.primary : '#64748B'} />
+            <AppIcon name="collection_point" size={24} color={kind === 'collection_point' ? colors.primary : '#64748B'} />
             <Text style={[styles.kindLabel, kind === 'collection_point' && styles.kindLabelActive]}>
               نقطة تجميع
             </Text>
@@ -335,7 +335,7 @@ export default function AddScreen() {
             onPress={() => setKind('wild_dump')}
             activeOpacity={0.8}
           >
-            <AppIcon name="reports" size={22} color={kind === 'wild_dump' ? '#DC2626' : '#64748B'} />
+            <AppIcon name="wild_dump" size={24} color={kind === 'wild_dump' ? '#DC2626' : '#64748B'} />
             <Text style={[styles.kindLabel, kind === 'wild_dump' && styles.kindLabelActiveDanger]}>
               نقطة سوداء
             </Text>
@@ -344,7 +344,7 @@ export default function AddScreen() {
 
         {/* 4. الموقع الجغرافي (Location) */}
         <View style={styles.locationHeaderRow}>
-          <Text style={styles.fieldLabel}>Location</Text>
+          <Text style={styles.fieldLabel}>الموقع</Text>
           <TouchableOpacity
             style={styles.gpsSmallBtn}
             onPress={handleGetCurrentLocation}
@@ -412,10 +412,10 @@ export default function AddScreen() {
         )}
 
         {/* 5. الوصف والملاحظات (Description) */}
-        <Text style={styles.fieldLabel}>Description</Text>
+        <Text style={styles.fieldLabel}>الوصف والملاحظات</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="Add more details... (اكتب تفاصيل تساعد في الوصول أو وصف الحالة)"
+          placeholder="اكتب تفاصيل إضافية تساعد في الوصول وتحديد المشكلة..."
           placeholderTextColor="#9CA3AF"
           value={notes}
           onChangeText={setNotes}

@@ -54,12 +54,12 @@ export default function HomeScreen() {
 
           <View style={styles.greetingContainer}>
             <Text style={styles.greetingTitle}>
-              Good morning, {userName}
+              صباح الخير، {userName}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5, marginTop: 2 }}>
               <AppIcon name="leaf" size={13} color="#15803D" />
               <Text style={styles.greetingSubtitle}>
-                Let's make Laghouat greener!
+                معاً لنجعل الأغواط أنقى وأجمل!
               </Text>
             </View>
           </View>
@@ -72,8 +72,8 @@ export default function HomeScreen() {
               <Text style={styles.impactProgressText}>4/5</Text>
             </View>
             <View style={styles.citizenBadgeRow}>
-              <Text style={styles.citizenRank}>5 ★ Citizen</Text>
-              <Text style={styles.citizenRankSub}>Your impact this month</Text>
+              <Text style={styles.citizenRank}>مواطن مساهم ★ 5</Text>
+              <Text style={styles.citizenRankSub}>أثرك البيئي هذا الشهر</Text>
             </View>
           </View>
 
@@ -85,23 +85,23 @@ export default function HomeScreen() {
           {/* أعمدة الإحصائيات الأربعة */}
           <View style={styles.statsRow}>
             <View style={styles.statColumn}>
-              <Text style={styles.statValue}>12h</Text>
-              <Text style={styles.statLabel}>Volunteering</Text>
+              <Text style={styles.statValue}>12 سا</Text>
+              <Text style={styles.statLabel}>تطوع</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statColumn}>
               <Text style={styles.statValue}>8</Text>
-              <Text style={styles.statLabel}>Twizas</Text>
+              <Text style={styles.statLabel}>حملات</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statColumn}>
               <Text style={styles.statValue}>3</Text>
-              <Text style={styles.statLabel}>Reports</Text>
+              <Text style={styles.statLabel}>بلاغات</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statColumn}>
               <Text style={styles.statValue}>#3</Text>
-              <Text style={styles.statLabel}>In District</Text>
+              <Text style={styles.statLabel}>في الحي</Text>
             </View>
           </View>
         </View>
@@ -110,9 +110,9 @@ export default function HomeScreen() {
         <View style={styles.impactCard}>
           <View style={styles.sectionHeaderRow}>
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-              <Text style={styles.viewDetailsText}>View details &gt;</Text>
+              <Text style={styles.viewDetailsText}>عرض التفاصيل ←</Text>
             </TouchableOpacity>
-            <Text style={styles.sectionTitle}>Your Impact</Text>
+            <Text style={styles.sectionTitle}>أثر مساهماتك</Text>
           </View>
 
           {/* محاكاة الرسم البياني الأخضر الانسيابي */}
@@ -125,10 +125,10 @@ export default function HomeScreen() {
               <View style={styles.chartCurveLine} />
             </View>
             <View style={styles.chartMonthsRow}>
-              <Text style={styles.monthText}>Sep</Text>
-              <Text style={styles.monthText}>Oct</Text>
-              <Text style={styles.monthText}>Nov</Text>
-              <Text style={styles.monthText}>Dec</Text>
+              <Text style={styles.monthText}>سبتمبر</Text>
+              <Text style={styles.monthText}>أكتوبر</Text>
+              <Text style={styles.monthText}>نوفمبر</Text>
+              <Text style={styles.monthText}>ديسمبر</Text>
             </View>
           </View>
         </View>
@@ -150,23 +150,23 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(tabs)/chat')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.joinBtnText}>Join</Text>
+                <Text style={styles.joinBtnText}>انضمام</Text>
               </TouchableOpacity>
               <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={styles.eventTitle}>Next Twiza Event</Text>
-                <Text style={styles.eventSubtitle}>Old Medina Cleanup</Text>
+                <Text style={styles.eventTitle}>فعالية التويزة القادمة</Text>
+                <Text style={styles.eventSubtitle}>تنظيف وتجميل المدينة القديمة</Text>
               </View>
             </View>
 
             <View style={styles.eventMetaRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
                 <AppIcon name="people" size={13} color="#6B7280" />
-                <Text style={styles.eventMetaText}>12 volunteers</Text>
+                <Text style={styles.eventMetaText}>12 متطوع</Text>
               </View>
               <Text style={styles.eventMetaDot}>•</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
                 <AppIcon name="pin" size={13} color="#6B7280" />
-                <Text style={styles.eventMetaText}>Main Avenue</Text>
+                <Text style={styles.eventMetaText}>نهج المقاومة الرئيسي</Text>
               </View>
             </View>
           </View>
@@ -182,8 +182,8 @@ export default function HomeScreen() {
             <View style={styles.quickIconCircle}>
               <AppIcon name="bin" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.quickCardTitle}>Nearby Bins</Text>
-            <Text style={styles.quickCardSubtitle}>12 bins found nearby &gt;</Text>
+            <Text style={styles.quickCardTitle}>أقرب الحاويات</Text>
+            <Text style={styles.quickCardSubtitle}>12 حاوية قريبة منك ←</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -194,8 +194,8 @@ export default function HomeScreen() {
             <View style={[styles.quickIconCircle, { backgroundColor: '#E8F5E9' }]}>
               <AppIcon name="camera" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.quickCardTitle}>Add Report</Text>
-            <Text style={styles.quickCardSubtitle}>Help clean Laghouat &gt;</Text>
+            <Text style={styles.quickCardTitle}>إضافة بلاغ</Text>
+            <Text style={styles.quickCardSubtitle}>ساهم في نظافة الأغواط ←</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -17,6 +17,8 @@ export type IconName =
   | 'map'
   | 'camera'
   | 'bin'
+  | 'collection_point'
+  | 'wild_dump'
   | 'pin'
   | 'gps'
   | 'compass'
@@ -175,10 +177,38 @@ function renderSvgPaths(name: IconName, color: string, focused: boolean) {
     case 'bin':
       return (
         <>
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          <line x1="10" y1="11" x2="10" y2="17" />
-          <line x1="14" y1="11" x2="14" y2="17" />
+          {/* حاوية شوارع بعجلات وغطاء أنيق متناسق */}
+          <path d="M5 6h14l-1.2 13.2A2 2 0 0 1 15.81 21H8.19a2 2 0 0 1-1.99-1.8L5 6z" />
+          <path d="M3 6h18" strokeWidth="2.2" />
+          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="10" x2="10" y2="16" />
+          <line x1="14" y1="10" x2="14" y2="16" />
+        </>
+      );
+
+    case 'collection_point':
+      return (
+        <>
+          {/* نقطة تجميع ونفايات قابلة للفرز: صندوق مع سهم إيداع وسعة واضحة */}
+          <path d="M4 10v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9" />
+          <path d="M2 6h20" strokeWidth="2" />
+          <path d="M9 3h6" strokeWidth="2" />
+          <polyline points="9 13 12 16 15 13" strokeWidth="2" />
+          <line x1="12" y1="9" x2="12" y2="16" strokeWidth="2" />
+        </>
+      );
+
+    case 'wild_dump':
+      return (
+        <>
+          {/* نقطة سوداء ومكب عشوائي: مثلث تنبيه خطر مع علامة تعجب حادة */}
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            fill={focused ? color : 'none'}
+            fillOpacity={focused ? 0.15 : 0}
+          />
+          <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2.4" strokeLinecap="round" />
+          <circle cx="12" cy="17" r="1.2" fill={color} />
         </>
       );
 

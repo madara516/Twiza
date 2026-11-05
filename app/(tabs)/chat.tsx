@@ -326,7 +326,7 @@ export default function ChatScreen() {
               onPress={autoDetectAndConnectGPS}
               activeOpacity={0.8}
             >
-              <Text style={styles.retryGpsText}>تحديث الموقع 🔄</Text>
+              <Text style={styles.retryGpsText}>تحديث الموقع</Text>
             </TouchableOpacity>
             <Text style={styles.errorBannerText}>{locationError}</Text>
           </View>
@@ -346,7 +346,7 @@ export default function ChatScreen() {
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>💬</Text>
+            <AppIcon name="chat" size={44} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>لا توجد رسائل بعد في {currentNeighborhood}</Text>
             <Text style={styles.emptyDesc}>
               كن أول من يبدأ المحادثة وينسق حملة تويزة ونظافة مع جيران هذا الحي!
@@ -389,7 +389,8 @@ export default function ChatScreen() {
                       </Text>
                       {isAdmin && (
                         <View style={styles.adminBadge}>
-                          <Text style={styles.adminBadgeText}>مشرف بلدية 🛡️</Text>
+                          <AppIcon name="shield" size={11} color="#B45309" />
+                          <Text style={styles.adminBadgeText}>مشرف بلدية</Text>
                         </View>
                       )}
                     </View>
@@ -453,15 +454,18 @@ export default function ChatScreen() {
           </View>
         ) : (
           <View style={styles.guestPromptContainer}>
-            <Text style={styles.guestPromptText}>
-              🔒 سجّل الدخول بحساب مواطن للمشاركة في شات الحي
-            </Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <AppIcon name="shield" size={16} color="#64748B" />
+              <Text style={styles.guestPromptText}>
+                سجّل الدخول بحساب مواطن للمشاركة في شات الحي
+              </Text>
+            </View>
             <TouchableOpacity
               style={styles.guestLoginBtn}
               onPress={() => router.push('/(auth)/login')}
               activeOpacity={0.85}
             >
-              <Text style={styles.guestLoginBtnText}>تسجيل الدخول 🔑</Text>
+              <Text style={styles.guestLoginBtnText}>تسجيل الدخول</Text>
             </TouchableOpacity>
           </View>
         )}

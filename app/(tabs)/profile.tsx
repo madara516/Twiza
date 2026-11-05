@@ -98,9 +98,9 @@ export default function ProfileScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Text style={styles.headerBackIcon}>‹</Text>
+          <AppIcon name="chevron_right" size={20} color="#1B4D3E" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>الملف الشخصي</Text>
         <TouchableOpacity
           style={styles.headerGearBtn}
           onPress={handleLanguageToggle}
@@ -128,7 +128,7 @@ export default function ProfileScreen() {
                 <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5 }}>
                   <AppIcon name={isAdmin || role === 'admin' ? 'shield' : 'star'} size={12} color={colors.primary} focused />
                   <Text style={styles.roleTagText}>
-                    {isAdmin || role === 'admin' ? 'Admin' : 'Citizen'}
+                    {isAdmin || role === 'admin' ? 'مشرف بلدية' : 'مواطن مساهم'}
                   </Text>
                 </View>
               </View>
@@ -136,20 +136,20 @@ export default function ProfileScreen() {
               {/* أعمدة الإحصائيات الأربعة المطابقة للموك آب */}
               <View style={styles.statsProfileRow}>
                 <View style={styles.statProfileCol}>
-                  <Text style={styles.statProfileValue}>12h</Text>
-                  <Text style={styles.statProfileLabel}>Volunteering</Text>
+                  <Text style={styles.statProfileValue}>12 سا</Text>
+                  <Text style={styles.statProfileLabel}>تطوع</Text>
                 </View>
                 <View style={styles.statProfileCol}>
                   <Text style={styles.statProfileValue}>8</Text>
-                  <Text style={styles.statProfileLabel}>Twizas</Text>
+                  <Text style={styles.statProfileLabel}>حملات</Text>
                 </View>
                 <View style={styles.statProfileCol}>
                   <Text style={styles.statProfileValue}>3</Text>
-                  <Text style={styles.statProfileLabel}>Reports</Text>
+                  <Text style={styles.statProfileLabel}>بلاغات</Text>
                 </View>
                 <View style={styles.statProfileCol}>
                   <Text style={styles.statProfileValue}>#3</Text>
-                  <Text style={styles.statProfileLabel}>In District</Text>
+                  <Text style={styles.statProfileLabel}>في الحي</Text>
                 </View>
               </View>
             </View>
@@ -158,9 +158,9 @@ export default function ProfileScreen() {
             <View style={styles.sectionCard}>
               <View style={styles.sectionTitleRow}>
                 <TouchableOpacity onPress={() => {}}>
-                  <Text style={styles.viewAllBadges}>View all &gt;</Text>
+                  <Text style={styles.viewAllBadges}>عرض الكل ←</Text>
                 </TouchableOpacity>
-                <Text style={styles.sectionHeader}>Badges</Text>
+                <Text style={styles.sectionHeader}>الأوسمة والشارات</Text>
               </View>
 
               <View style={styles.badgesRow}>
@@ -168,21 +168,21 @@ export default function ProfileScreen() {
                   <View style={[styles.badgeIconCircle, { backgroundColor: '#EAF4ED' }]}>
                     <AppIcon name="shield" size={20} color="#23703F" focused />
                   </View>
-                  <Text style={styles.badgeLabel}>Green Hero</Text>
+                  <Text style={styles.badgeLabel}>بطل البيئة</Text>
                 </View>
 
                 <View style={styles.badgeItem}>
                   <View style={[styles.badgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
                     <AppIcon name="star" size={20} color="#D97706" focused />
                   </View>
-                  <Text style={styles.badgeLabel}>Community Leader</Text>
+                  <Text style={styles.badgeLabel}>قائد مجتمعي</Text>
                 </View>
 
                 <View style={styles.badgeItem}>
                   <View style={[styles.badgeIconCircle, { backgroundColor: '#E0F2FE' }]}>
                     <AppIcon name="heart" size={20} color="#0284C7" focused />
                   </View>
-                  <Text style={styles.badgeLabel}>Twiza Star</Text>
+                  <Text style={styles.badgeLabel}>نجم التويزة</Text>
                 </View>
               </View>
             </View>
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
                   <Text style={styles.menuChevron}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>Language / لغة التطبيق</Text>
+                  <Text style={styles.menuTitle}>لغة التطبيق</Text>
                   <Text style={styles.menuSubtitle}>{lang === 'ar' ? 'العربية' : 'English'}</Text>
                 </View>
                 <View style={styles.menuIconCircle}>
@@ -215,7 +215,7 @@ export default function ProfileScreen() {
                   <Text style={styles.menuChevron}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>Account Information</Text>
+                  <Text style={styles.menuTitle}>معلومات الحساب</Text>
                   <Text style={styles.menuSubtitle}>{user.email}</Text>
                 </View>
                 <View style={styles.menuIconCircle}>
@@ -231,8 +231,8 @@ export default function ProfileScreen() {
                   <Text style={styles.menuChevron}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>Notifications</Text>
-                  <Text style={styles.menuSubtitle}>Enabled</Text>
+                  <Text style={styles.menuTitle}>الإشعارات</Text>
+                  <Text style={styles.menuSubtitle}>مفعلة</Text>
                 </View>
                 <View style={styles.menuIconCircle}>
                   <AppIcon name="bell" size={18} color="#23703F" />
@@ -252,7 +252,7 @@ export default function ProfileScreen() {
               ) : (
                 <View style={styles.logoutContent}>
                   <AppIcon name="logout" size={18} color="#DC2626" />
-                  <Text style={styles.logoutText}>Log Out</Text>
+                  <Text style={styles.logoutText}>تسجيل الخروج</Text>
                 </View>
               )}
             </TouchableOpacity>

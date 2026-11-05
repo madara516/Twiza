@@ -232,9 +232,9 @@ export default function ReportsScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Text style={styles.headerBackIcon}>‹</Text>
+          <AppIcon name="chevron_right" size={20} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Reports</Text>
+        <Text style={styles.headerTitle}>بلاغاتي</Text>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
             style={styles.headerAddBtn}
@@ -253,7 +253,7 @@ export default function ReportsScreen() {
           onPress={() => setStatusFilter('all')}
         >
           <Text style={[styles.statusPillText, statusFilter === 'all' && styles.statusPillTextActive]}>
-            All ({unifiedItems.length})
+            الكل ({unifiedItems.length})
           </Text>
         </TouchableOpacity>
 
@@ -262,7 +262,7 @@ export default function ReportsScreen() {
           onPress={() => setStatusFilter('processing')}
         >
           <Text style={[styles.statusPillText, statusFilter === 'processing' && styles.statusPillTextActiveBlue]}>
-            Processing
+            قيد المعالجة
           </Text>
         </TouchableOpacity>
 
@@ -271,7 +271,7 @@ export default function ReportsScreen() {
           onPress={() => setStatusFilter('in_progress')}
         >
           <Text style={[styles.statusPillText, statusFilter === 'in_progress' && styles.statusPillTextActiveAmber]}>
-            In Progress
+            قيد التدخل
           </Text>
         </TouchableOpacity>
 
@@ -280,7 +280,7 @@ export default function ReportsScreen() {
           onPress={() => setStatusFilter('solved')}
         >
           <Text style={[styles.statusPillText, statusFilter === 'solved' && styles.statusPillTextActiveGreen]}>
-            Solved
+            تم الحل
           </Text>
         </TouchableOpacity>
       </View>
