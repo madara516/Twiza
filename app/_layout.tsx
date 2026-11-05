@@ -2,7 +2,7 @@
  * المخطط الجذري للتطبيق (Root Layout)
  * 
  * يطبق غلاف الهاتف الذكي على متصفح الويب (Mobile App Shell) لحماية التصميم
- * المتجاوب من التمدد العريض (100% width)، مع دعم RTL وألوان الهوية الرسمية.
+ * المتجاوب من التمدد العريض (100% width)، مع دعم RTL، واللغات الثلاثية، والنمطين النهاري والليلي الأخضر.
  */
 
 import React, { useEffect } from 'react';
@@ -10,24 +10,18 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/context/AuthContext';
-import { setupRTL } from '../src/i18n';
-import { colors } from '../src/theme/colors';
+import { LanguageProvider, useLanguage } from '../src/context/LanguageContext';
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { GlobalProximityWatcher } from '../src/components/GlobalProximityWatcher';
 import { ReportResolvedRecognitionModal } from '../src/components/ReportResolvedRecognitionModal';
 
-export default function RootLayout() {
-  useEffect(() => {
-    // تفعيل اتجاه اليمين إلى اليسار للغة العربية الافتراضية
-    setupRTL('ar');
+function InnerRootLayout() {
+  const { colors, isDark } = useTheme();
+  const { isRTL } = useLanguage();
 
+  useEffect(() => {
     // تحميل خطوط Google Fonts (Cairo & Tajawal) وإعداد اتجاه الصفحة في بيئة الويب
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      document.documentElement.dir = 'rtl';
-      document.body.dir = 'rtl';
-      document.body.style.backgroundColor = '#EAE6DF';
-      document.body.style.margin = '0';
-      document.body.style.padding = '0';
-
       const fontLinkId = 'twizza-arabic-fonts';
       if (!document.getElementById(fontLinkId)) {
         const link = document.createElement('link');
@@ -56,18 +50,32 @@ export default function RootLayout() {
   );
 
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <GlobalProximityWatcher />
       <ReportResolvedRecognitionModal />
       {Platform.OS === 'web' ? (
-        <View style={styles.webBackdrop}>
-          <View style={styles.webPhoneContainer}>{stackContent}</View>
+        <View style={[styles.webBackdrop, { backgroundColor: isDark ? '#040F0B' : '#EAE6DF' }]}>
+          <View style={[styles.webPhoneContainer, { backgroundColor: colors.background }]}>
+            {stackContent}
+          </View>
         </View>
       ) : (
         stackContent
       )}
-    </AuthProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <InnerRootLayout />
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }
 
@@ -85,7 +93,7 @@ const styles = StyleSheet.create({
     maxWidth: 430,
     minHeight: '100vh' as any,
     maxHeight: '100vh' as any,
-    backgroundColor: '#F7F5F0',
+    backgroundColor: '#F8FAF8',
     overflow: 'hidden',
     position: 'relative',
     ...(Platform.OS === 'web'

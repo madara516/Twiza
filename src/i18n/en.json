@@ -1,27 +1,120 @@
 {
-  "app_name": "Al-Twiza",
+  "app_name": "Twiza",
   "pilot_city": "Laghouat",
-  "tagline": "Bridge between citizens and municipality for cleaner cities",
-  "welcome": "Welcome to Al-Twiza",
-  "welcome_desc": "An application to help discover nearest waste bins and collection points, and report wild dumps.",
+  "tagline": "Laghouat, Greener Together",
+  "hero_subtitle": "Smart Civic Platform for Clean & Sustainable Cities",
+  "get_started": "Get Started",
+  "welcome": "Welcome to Twiza",
+  "welcome_desc": "Find nearby waste bins, collection points, and report wild dumps to keep your city clean.",
+  "language": {
+    "title": "App Language",
+    "choose": "Choose App Language",
+    "ar": "العربية",
+    "fr": "Français",
+    "en": "English",
+    "ar_desc": "Arabic (Default)",
+    "fr_desc": "French (Official)",
+    "en_desc": "English (International)"
+  },
+  "theme": {
+    "title": "App Theme",
+    "choose": "Choose App Theme",
+    "light": "Light Mode",
+    "dark": "Dark Mode (Deep Green)",
+    "light_desc": "Crisp mint & white for bright daylight use",
+    "dark_desc": "Deep emerald forest green, easy on the eyes"
+  },
+  "tabs": {
+    "home": "Home",
+    "map": "Map",
+    "add": "Add",
+    "chat": "Local Chat",
+    "reports": "My Reports",
+    "profile": "Profile"
+  },
+  "home": {
+    "greeting": "Good morning",
+    "motto": "Let's make Laghouat greener and cleaner!",
+    "citizen_rank": "5 ★ Citizen",
+    "impact_month": "Your impact this month",
+    "stat_volunteering": "Volunteering",
+    "stat_twizas": "Twizas",
+    "stat_reports": "Reports",
+    "stat_district": "In District",
+    "impact_title": "Your Impact",
+    "view_details": "View details →",
+    "next_event": "Next Twiza Event",
+    "next_event_title": "Old Medina Cleanup",
+    "volunteers": "volunteers",
+    "location_demo": "Main Avenue",
+    "join": "Join",
+    "nearby_bins": "Nearby Bins",
+    "bins_count": "12 bins found nearby →",
+    "add_report": "Add Report",
+    "clean_action": "Help clean Laghouat →"
+  },
   "kinds": {
-    "bin": "Bin",
-    "collection_point": "Collection point",
-    "wild_dump": "Wild dump"
+    "bin": "Waste Bin",
+    "collection_point": "Collection Point",
+    "wild_dump": "Black Spot / Dump"
   },
   "statuses": {
     "sent": "Sent",
     "received": "Received",
-    "in_repair": "In repair",
-    "fixed": "Fixed",
-    "rejected": "Rejected"
+    "in_repair": "In Progress",
+    "fixed": "Resolved",
+    "rejected": "Rejected",
+    "pending": "Pending Review"
   },
-  "neighborhoods_title": "Currently covered neighborhoods",
-  "status_ok": "All systems operational",
-  "device_ready": "Ready for Android via Expo Go",
-  "nearest_places": "Nearest to me",
-  "add_place": "Add a place",
-  "my_reports": "My reports",
-  "profile": "Profile",
-  "out_of_service_notice": "The application is currently available in Laghouat only, and soon in other wilayas"
+  "reports": {
+    "title": "My Reports",
+    "filter_all": "All",
+    "filter_processing": "Processing",
+    "filter_in_progress": "In Progress",
+    "filter_solved": "Solved",
+    "empty_title": "No reports registered yet",
+    "empty_desc": "If you notice a waste issue or broken bin in your area, submit a report to help resolve it.",
+    "new_report": "Submit First Report"
+  },
+  "add": {
+    "title": "Add Report or Place",
+    "add_photo": "Add a photo",
+    "photo_desc": "Helps field staff and volunteers locate the issue",
+    "camera": "Camera",
+    "gallery": "Gallery",
+    "category": "Category",
+    "location": "Location",
+    "gps_detect": "Detect my location",
+    "severity": "Severity Level",
+    "severity_small": "Low",
+    "severity_medium": "Medium",
+    "severity_large": "Critical / High",
+    "notes": "Description & Notes",
+    "notes_placeholder": "Add details to help the response team...",
+    "submit": "Submit Report",
+    "submitting": "Submitting report..."
+  },
+  "profile": {
+    "title": "Profile",
+    "role_admin": "Municipality Admin",
+    "role_citizen": "Active Citizen",
+    "badges": "Badges & Honors",
+    "view_all": "View all →",
+    "account_info": "Account Information",
+    "notifications": "Notifications",
+    "enabled": "Enabled",
+    "logout": "Log Out",
+    "guest_title": "Browsing as Guest",
+    "guest_desc": "You can explore the map and locate bins. Sign in to submit reports or participate in campaigns.",
+    "login": "Sign In",
+    "register": "Create Account",
+    "exit_guest": "Exit Guest Mode"
+  },
+  "auth": {
+    "login_title": "Sign In",
+    "email": "Email Address",
+    "password": "Password",
+    "enter_as_guest": "Continue as Guest",
+    "find_closest_bin": "Closest Bin 📍"
+  }
 }

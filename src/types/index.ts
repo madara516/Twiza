@@ -13,7 +13,7 @@ export interface UserProfile {
   uid: string;
   displayName: string;
   photoURL: string | null;
-  language: 'ar' | 'en';
+  language: 'ar' | 'fr' | 'en';
   role: UserRole;
   isBanned: boolean;
   createdAt: number;

@@ -1,8 +1,11 @@
 /**
- * شاشة الملف الشخصي (Profile Screen)
+ * شاشة الملف الشخصي وإعدادات التطبيق (Profile & Settings Screen)
  * 
- * بالدارجة: هذه شاشة الحساب، يشوف فيها المواطن اسمه، إيميله، ورتبته (مواطن أو أدمن)،
- * ويقدر يبدل اللغة أو يخرج من حسابه بأمان مع ضمان عمل تسجيل الخروج على الويب والهاتف.
+ * تتيح للمواطن أو المشرف:
+ * 1. استعراض الحساب والرتبة والإحصائيات والأوسمة
+ * 2. الاختيار الصريح بين اللغات الثلاث (العربية / Français / English)
+ * 3. الاختيار الصريح بين المظهر النهاري والمظهر الليلي (الأخضر الداكن)
+ * 4. تسجيل الخروج بأمان مع حوار تأكيد متجاوب.
  */
 
 import React, { useState } from 'react';
@@ -12,50 +15,53 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
-import { getCurrentLanguage, setupRTL } from '../../src/i18n';
+import { useLanguage } from '../../src/context/LanguageContext';
+import { useTheme, ThemeMode } from '../../src/context/ThemeContext';
+import { Language } from '../../src/i18n';
 import { AuthService } from '../../src/services/authService';
 import { AppIcon } from '../../src/components/AppIcon';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, role, isAdmin, logout, isGuest, setGuestMode, refreshProfile } = useAuth();
-  const [lang, setLang] = useState<'ar' | 'en'>(getCurrentLanguage());
+  const { language, setLanguage, t, isRTL, languageOptions } = useLanguage();
+  const { themeMode, setThemeMode, isDark, colors } = useTheme();
+
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const [showLogoutModal, setShowLogoutModal] = useState<boolean>(false);
+  const [showLanguageModal, setShowLanguageModal] = useState<boolean>(false);
+  const [showThemeModal, setShowThemeModal] = useState<boolean>(false);
 
-  const handleLanguageToggle = async () => {
-    const nextLang = lang === 'ar' ? 'en' : 'ar';
-    setLang(nextLang);
-    const needReload = setupRTL(nextLang);
+  // اختيار اللغة من القائمة الثلاثية
+  const handleSelectLanguage = async (newLang: Language) => {
+    setShowLanguageModal(false);
+    await setLanguage(newLang);
 
     if (user) {
       try {
-        await AuthService.updateProfileData(user.uid, { language: nextLang });
+        await AuthService.updateProfileData(user.uid, { language: newLang });
         await refreshProfile();
       } catch (err) {
         console.error('فشل حفظ اللغة في الملف الشخصي:', err);
       }
     }
-
-    if (needReload) {
-      Alert.alert(
-        'تم تغيير اللغة',
-        'لتطبيق اتجاه الشاشة كاملاً (RTL/LTR)، قد تحتاج لإعادة تشغيل التطبيق.'
-      );
-    }
   };
 
-  // تنفيذ تسجيل الخروج الفعلي والتوجيه لشاشة الترحيب والدخول
+  // اختيار المظهر (نهاري أو ليلي أخضر)
+  const handleSelectTheme = async (mode: ThemeMode) => {
+    setShowThemeModal(false);
+    await setThemeMode(mode);
+  };
+
+  // تنفيذ تسجيل الخروج الفعلي
   const performLogout = async () => {
     setShowLogoutModal(false);
     try {
@@ -80,30 +86,23 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogoutPress = () => {
-    performLogout();
-  };
-
-  // خروج الضيف والعودة لشاشة البداية
-  const handleExitGuest = () => {
-    performLogout();
-  };
+  const currentLangOption = languageOptions.find((l) => l.code === language) || languageOptions[0];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       {/* الترويسة العلوية النظيفة مع زر العودة */}
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={styles.headerBackBtn}
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <AppIcon name="chevron_right" size={20} color="#1B4D3E" />
+          <AppIcon name="chevron_right" size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>الملف الشخصي</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
         <TouchableOpacity
           style={styles.headerGearBtn}
-          onPress={handleLanguageToggle}
+          onPress={() => setShowThemeModal(true)}
           activeOpacity={0.7}
         >
           <AppIcon name="settings" size={20} color={colors.primary} />
@@ -114,136 +113,164 @@ export default function ProfileScreen() {
         {user ? (
           <>
             {/* بطاقة معلومات الحساب */}
-            <View style={styles.userCard}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
+            <View style={[styles.userCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.avatar, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                <Text style={[styles.avatarText, { color: isDark ? '#4ADE80' : '#23703F' }]}>
                   {(profile?.displayName || user.email || 'U').charAt(0).toUpperCase()}
                 </Text>
               </View>
 
-              <Text style={styles.userName}>{profile?.displayName || user.email?.split('@')[0] || 'Adel Bessaoudi'}</Text>
-              <Text style={styles.userEmail}>@{user.email?.split('@')[0] || 'citizen'}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>
+                {profile?.displayName || user.email?.split('@')[0] || 'Adel Bessaoudi'}
+              </Text>
+              <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+                @{user.email?.split('@')[0] || 'citizen'}
+              </Text>
 
-              <View style={styles.roleTag}>
+              <View style={[styles.roleTag, { backgroundColor: isDark ? '#133D2B' : '#EAF4ED' }]}>
                 <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5 }}>
                   <AppIcon name={isAdmin || role === 'admin' ? 'shield' : 'star'} size={12} color={colors.primary} focused />
-                  <Text style={styles.roleTagText}>
-                    {isAdmin || role === 'admin' ? 'مشرف بلدية' : 'مواطن مساهم'}
+                  <Text style={[styles.roleTagText, { color: colors.primary }]}>
+                    {isAdmin || role === 'admin' ? t('profile.role_admin') : t('profile.role_citizen')}
                   </Text>
                 </View>
               </View>
 
               {/* أعمدة الإحصائيات الأربعة المطابقة للموك آب */}
-              <View style={styles.statsProfileRow}>
+              <View style={[styles.statsProfileRow, { borderTopColor: colors.border }]}>
                 <View style={styles.statProfileCol}>
-                  <Text style={styles.statProfileValue}>12 سا</Text>
-                  <Text style={styles.statProfileLabel}>تطوع</Text>
+                  <Text style={[styles.statProfileValue, { color: colors.primary }]}>12h</Text>
+                  <Text style={[styles.statProfileLabel, { color: colors.textSecondary }]}>{t('home.stat_volunteering')}</Text>
                 </View>
                 <View style={styles.statProfileCol}>
-                  <Text style={styles.statProfileValue}>8</Text>
-                  <Text style={styles.statProfileLabel}>حملات</Text>
+                  <Text style={[styles.statProfileValue, { color: colors.primary }]}>8</Text>
+                  <Text style={[styles.statProfileLabel, { color: colors.textSecondary }]}>{t('home.stat_twizas')}</Text>
                 </View>
                 <View style={styles.statProfileCol}>
-                  <Text style={styles.statProfileValue}>3</Text>
-                  <Text style={styles.statProfileLabel}>بلاغات</Text>
+                  <Text style={[styles.statProfileValue, { color: colors.primary }]}>3</Text>
+                  <Text style={[styles.statProfileLabel, { color: colors.textSecondary }]}>{t('home.stat_reports')}</Text>
                 </View>
                 <View style={styles.statProfileCol}>
-                  <Text style={styles.statProfileValue}>#3</Text>
-                  <Text style={styles.statProfileLabel}>في الحي</Text>
+                  <Text style={[styles.statProfileValue, { color: colors.primary }]}>#3</Text>
+                  <Text style={[styles.statProfileLabel, { color: colors.textSecondary }]}>{t('home.stat_district')}</Text>
                 </View>
               </View>
             </View>
 
-            {/* الأوسمة والشارات (Badges) المطابقة للموك آب */}
-            <View style={styles.sectionCard}>
+            {/* الأوسمة والشارات (Badges) */}
+            <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionTitleRow}>
                 <TouchableOpacity onPress={() => {}}>
-                  <Text style={styles.viewAllBadges}>عرض الكل ←</Text>
+                  <Text style={[styles.viewAllBadges, { color: colors.primary }]}>{t('profile.view_all')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.sectionHeader}>الأوسمة والشارات</Text>
+                <Text style={[styles.sectionHeader, { color: colors.text }]}>{t('profile.badges')}</Text>
               </View>
 
               <View style={styles.badgesRow}>
                 <View style={styles.badgeItem}>
-                  <View style={[styles.badgeIconCircle, { backgroundColor: '#EAF4ED' }]}>
-                    <AppIcon name="shield" size={20} color="#23703F" focused />
+                  <View style={[styles.badgeIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                    <AppIcon name="shield" size={20} color={isDark ? '#4ADE80' : '#23703F'} focused />
                   </View>
-                  <Text style={styles.badgeLabel}>بطل البيئة</Text>
+                  <Text style={[styles.badgeLabel, { color: colors.textSecondary }]}>بطل البيئة</Text>
                 </View>
 
                 <View style={styles.badgeItem}>
-                  <View style={[styles.badgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <View style={[styles.badgeIconCircle, { backgroundColor: isDark ? '#33290D' : '#FEF3C7' }]}>
                     <AppIcon name="star" size={20} color="#D97706" focused />
                   </View>
-                  <Text style={styles.badgeLabel}>قائد مجتمعي</Text>
+                  <Text style={[styles.badgeLabel, { color: colors.textSecondary }]}>قائد مجتمعي</Text>
                 </View>
 
                 <View style={styles.badgeItem}>
-                  <View style={[styles.badgeIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <View style={[styles.badgeIconCircle, { backgroundColor: isDark ? '#103040' : '#E0F2FE' }]}>
                     <AppIcon name="heart" size={20} color="#0284C7" focused />
                   </View>
-                  <Text style={styles.badgeLabel}>نجم التويزة</Text>
+                  <Text style={[styles.badgeLabel, { color: colors.textSecondary }]}>نجم التويزة</Text>
                 </View>
               </View>
             </View>
 
-            {/* قائمة الإعدادات والخيارات مع الأيقونات المطابقة للموك آب */}
-            <View style={styles.menuCard}>
-              {/* تبديل اللغة */}
+            {/* قائمة الإعدادات (اللغة، المظهر، الحساب، الإشعارات) */}
+            <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {/* 1. اختيار لغة التطبيق الثلاثية (Trilanguage Choice) */}
               <TouchableOpacity
                 style={styles.menuRow}
-                onPress={handleLanguageToggle}
+                onPress={() => setShowLanguageModal(true)}
                 activeOpacity={0.7}
               >
                 <View style={styles.menuChevronBox}>
-                  <Text style={styles.menuChevron}>›</Text>
+                  <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>لغة التطبيق</Text>
-                  <Text style={styles.menuSubtitle}>{lang === 'ar' ? 'العربية' : 'English'}</Text>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('language.title')}</Text>
+                  <Text style={[styles.menuSubtitle, { color: colors.primary }]}>
+                    {currentLangOption.flag} {currentLangOption.nativeName}
+                  </Text>
                 </View>
-                <View style={styles.menuIconCircle}>
-                  <AppIcon name="settings" size={18} color="#23703F" />
+                <View style={[styles.menuIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                  <AppIcon name="compass" size={18} color={colors.primary} />
                 </View>
               </TouchableOpacity>
 
-              <View style={styles.menuDivider} />
+              <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
-              {/* معلومات الحساب */}
-              <View style={styles.menuRow}>
+              {/* 2. اختيار مظهر التطبيق (Dark Green / Light Theme Choice) */}
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => setShowThemeModal(true)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.menuChevronBox}>
-                  <Text style={styles.menuChevron}>›</Text>
+                  <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>معلومات الحساب</Text>
-                  <Text style={styles.menuSubtitle}>{user.email}</Text>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('theme.title')}</Text>
+                  <Text style={[styles.menuSubtitle, { color: colors.primary }]}>
+                    {isDark ? '🌲 ' + t('theme.dark') : '☀️ ' + t('theme.light')}
+                  </Text>
                 </View>
-                <View style={styles.menuIconCircle}>
-                  <AppIcon name="user" size={18} color="#23703F" />
+                <View style={[styles.menuIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                  <AppIcon name="settings" size={18} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+
+              <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+
+              {/* 3. معلومات الحساب */}
+              <View style={styles.menuRow}>
+                <View style={styles.menuChevronBox}>
+                  <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
+                </View>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.account_info')}</Text>
+                  <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{user.email}</Text>
+                </View>
+                <View style={[styles.menuIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                  <AppIcon name="user" size={18} color={colors.primary} />
                 </View>
               </View>
 
-              <View style={styles.menuDivider} />
+              <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
-              {/* الإشعارات */}
+              {/* 4. الإشعارات */}
               <View style={styles.menuRow}>
                 <View style={styles.menuChevronBox}>
-                  <Text style={styles.menuChevron}>›</Text>
+                  <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
                 </View>
                 <View style={styles.menuLabelContainer}>
-                  <Text style={styles.menuTitle}>الإشعارات</Text>
-                  <Text style={styles.menuSubtitle}>مفعلة</Text>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.notifications')}</Text>
+                  <Text style={[styles.menuSubtitle, { color: colors.primary }]}>{t('profile.enabled')}</Text>
                 </View>
-                <View style={styles.menuIconCircle}>
-                  <AppIcon name="bell" size={18} color="#23703F" />
+                <View style={[styles.menuIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                  <AppIcon name="bell" size={18} color={colors.primary} />
                 </View>
               </View>
             </View>
 
-            {/* زر تسجيل الخروج الصريح المطابق لـ Screen 11 */}
+            {/* زر تسجيل الخروج */}
             <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogoutPress}
+              style={[styles.logoutButton, { backgroundColor: isDark ? '#2E1515' : '#FEF2F2', borderColor: '#FCA5A5' }]}
+              onPress={() => setShowLogoutModal(true)}
               disabled={isLoggingOut}
               activeOpacity={0.85}
             >
@@ -252,63 +279,227 @@ export default function ProfileScreen() {
               ) : (
                 <View style={styles.logoutContent}>
                   <AppIcon name="logout" size={18} color="#DC2626" />
-                  <Text style={styles.logoutText}>تسجيل الخروج</Text>
+                  <Text style={styles.logoutText}>{t('profile.logout')}</Text>
                 </View>
               )}
             </TouchableOpacity>
           </>
         ) : (
           /* في حالة تصفح الضيف */
-          <View style={styles.guestCard}>
-            <View style={styles.guestIconCircle}>
-              <AppIcon name="user" size={40} color="#15803D" />
+          <View style={[styles.guestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.guestIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+              <AppIcon name="user" size={40} color={colors.primary} />
             </View>
-            <Text style={styles.guestTitle}>أنت تتصفح كضيف</Text>
-            <Text style={styles.guestSubtitle}>
-              يمكنك استعراض الخريطة ومعرفة أماكن الحاويات بدون تسجيل، لكن لإضافة مكان
-              جديد أو تقديم بلاغ يجب تسجيل الدخول.
+            <Text style={[styles.guestTitle, { color: colors.text }]}>{t('profile.guest_title')}</Text>
+            <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
+              {t('profile.guest_desc')}
             </Text>
 
+            {/* إعدادات سريعة للغة والمظهر للضيف */}
+            <View style={{ width: '100%', flexDirection: 'row', gap: 10, marginVertical: 12 }}>
+              <TouchableOpacity
+                style={[styles.guestPrefBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+                onPress={() => setShowLanguageModal(true)}
+              >
+                <Text style={{ fontSize: 13, color: colors.text }}>
+                  {currentLangOption.flag} {currentLangOption.nativeName}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.guestPrefBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
+                onPress={() => setShowThemeModal(true)}
+              >
+                <Text style={{ fontSize: 13, color: colors.text }}>
+                  {isDark ? '🌲 ' + t('theme.dark') : '☀️ ' + t('theme.light')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <TouchableOpacity
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/(auth)/login')}
               activeOpacity={0.88}
             >
-              <Text style={styles.primaryBtnText}>تسجيل الدخول</Text>
+              <Text style={styles.primaryBtnText}>{t('profile.login')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.secondaryBtn}
+              style={[styles.secondaryBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
               onPress={() => router.push('/(auth)/register')}
               activeOpacity={0.88}
             >
-              <Text style={styles.secondaryBtnText}>إنشاء حساب جديد</Text>
+              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{t('profile.register')}</Text>
             </TouchableOpacity>
 
             {/* زر الخروج من وضع الضيف والعودة لشاشة البداية */}
             <TouchableOpacity
               style={styles.exitGuestBtn}
-              onPress={handleExitGuest}
+              onPress={performLogout}
               activeOpacity={0.85}
             >
               <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <AppIcon name="logout" size={16} color="#DC2626" />
-                <Text style={styles.exitGuestBtnText}>الخروج والعودة للشاشة الرئيسية</Text>
+                <Text style={styles.exitGuestBtnText}>{t('profile.exit_guest')}</Text>
               </View>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
 
-      {/* نافذة تأكيد تسجيل الخروج للمتصفح والويب */}
+      {/* نافذة اختيار اللغة الثلاثية (Trilanguage Choice Modal) */}
+      <Modal visible={showLanguageModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.choiceModalBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalHeading, { color: colors.text }]}>{t('language.choose')}</Text>
+              <AppIcon name="compass" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.modalSubheading, { color: colors.textSecondary }]}>
+              اختر اللغة المفضلة لك، وسيتغير اتجاه ونصوص التطبيق فوراً
+            </Text>
+
+            <View style={{ width: '100%', gap: 10, marginVertical: 14 }}>
+              {languageOptions.map((opt) => {
+                const isSelected = language === opt.code;
+                return (
+                  <TouchableOpacity
+                    key={opt.code}
+                    style={[
+                      styles.choiceCard,
+                      {
+                        backgroundColor: isSelected ? (isDark ? '#14382A' : '#EAF4ED') : colors.surfaceAlt,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                      },
+                    ]}
+                    onPress={() => handleSelectLanguage(opt.code)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ fontSize: 24 }}>{opt.flag}</Text>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.choiceTitle, { color: colors.text }]}>
+                          {opt.nativeName} ({opt.name})
+                        </Text>
+                        <Text style={[styles.choiceDesc, { color: colors.textSecondary }]}>
+                          {t(`language.${opt.code}_desc`)}
+                        </Text>
+                      </View>
+                    </View>
+                    {isSelected ? (
+                      <View style={[styles.checkedCircle, { backgroundColor: colors.primary }]}>
+                        <AppIcon name="check" size={14} color="#FFF" />
+                      </View>
+                    ) : (
+                      <View style={[styles.uncheckedCircle, { borderColor: colors.border }]} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceAlt }]}
+              onPress={() => setShowLanguageModal(false)}
+            >
+              <Text style={[styles.modalCloseText, { color: colors.text }]}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* نافذة اختيار المظهر (Theme Choice Modal - Light & Dark Green) */}
+      <Modal visible={showThemeModal} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.choiceModalBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalHeading, { color: colors.text }]}>{t('theme.choose')}</Text>
+              <AppIcon name="settings" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.modalSubheading, { color: colors.textSecondary }]}>
+              اختر النمط البصري المريح لعينيك
+            </Text>
+
+            <View style={{ width: '100%', gap: 10, marginVertical: 14 }}>
+              {/* الخيار 1: الوضع النهاري */}
+              <TouchableOpacity
+                style={[
+                  styles.choiceCard,
+                  {
+                    backgroundColor: themeMode === 'light' ? (isDark ? '#14382A' : '#EAF4ED') : colors.surfaceAlt,
+                    borderColor: themeMode === 'light' ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => handleSelectTheme('light')}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+                  <Text style={{ fontSize: 24 }}>☀️</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.choiceTitle, { color: colors.text }]}>{t('theme.light')}</Text>
+                    <Text style={[styles.choiceDesc, { color: colors.textSecondary }]}>
+                      {t('theme.light_desc')}
+                    </Text>
+                  </View>
+                </View>
+                {themeMode === 'light' ? (
+                  <View style={[styles.checkedCircle, { backgroundColor: colors.primary }]}>
+                    <AppIcon name="check" size={14} color="#FFF" />
+                  </View>
+                ) : (
+                  <View style={[styles.uncheckedCircle, { borderColor: colors.border }]} />
+                )}
+              </TouchableOpacity>
+
+              {/* الخيار 2: الوضع الليلي الأخضر */}
+              <TouchableOpacity
+                style={[
+                  styles.choiceCard,
+                  {
+                    backgroundColor: themeMode === 'dark' ? (isDark ? '#14382A' : '#EAF4ED') : colors.surfaceAlt,
+                    borderColor: themeMode === 'dark' ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => handleSelectTheme('dark')}
+                activeOpacity={0.8}
+              >
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 12 }}>
+                  <Text style={{ fontSize: 24 }}>🌲</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.choiceTitle, { color: colors.text }]}>{t('theme.dark')}</Text>
+                    <Text style={[styles.choiceDesc, { color: colors.textSecondary }]}>
+                      {t('theme.dark_desc')}
+                    </Text>
+                  </View>
+                </View>
+                {themeMode === 'dark' ? (
+                  <View style={[styles.checkedCircle, { backgroundColor: colors.primary }]}>
+                    <AppIcon name="check" size={14} color="#FFF" />
+                  </View>
+                ) : (
+                  <View style={[styles.uncheckedCircle, { borderColor: colors.border }]} />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceAlt }]}
+              onPress={() => setShowThemeModal(false)}
+            >
+              <Text style={[styles.modalCloseText, { color: colors.text }]}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* نافذة تأكيد تسجيل الخروج */}
       <Modal visible={showLogoutModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
-          <View style={styles.confirmBox}>
+          <View style={[styles.confirmBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.confirmIconCircle}>
               <AppIcon name="logout" size={30} color="#DC2626" />
             </View>
-            <Text style={styles.confirmTitle}>تأكيد تسجيل الخروج</Text>
-            <Text style={styles.confirmMessage}>
+            <Text style={[styles.confirmTitle, { color: colors.text }]}>تأكيد تسجيل الخروج</Text>
+            <Text style={[styles.confirmMessage, { color: colors.textSecondary }]}>
               هل أنت متأكد من رغبتك في تسجيل الخروج والعودة لشاشة البداية؟
             </Text>
 
@@ -326,11 +517,11 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.confirmCancelBtn}
+                style={[styles.confirmCancelBtn, { backgroundColor: colors.surfaceAlt }]}
                 onPress={() => setShowLogoutModal(false)}
                 disabled={isLoggingOut}
               >
-                <Text style={styles.confirmCancelText}>إلغاء</Text>
+                <Text style={[styles.confirmCancelText, { color: colors.text }]}>إلغاء</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -343,11 +534,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     padding: theme.spacing.md,
     gap: theme.spacing.md,
+    paddingBottom: 90,
   },
   headerBar: {
     flexDirection: 'row',
@@ -355,26 +546,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerBackBtn: {
     padding: 6,
   },
-  headerBackIcon: {
-    fontSize: 26,
-    color: '#1F2937',
-    fontWeight: 'bold',
-  },
   headerTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#1F2937',
     fontFamily: theme.fontFamily,
   },
   headerGearBtn: {
     padding: 6,
+  },
+  userCard: {
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    fontFamily: theme.fontFamily,
+  },
+  userEmail: {
+    fontSize: 13,
+    marginBottom: 10,
+    fontFamily: theme.fontFamily,
+  },
+  roleTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  roleTagText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
   statsProfileRow: {
     flexDirection: 'row',
@@ -383,7 +612,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     marginTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
   },
   statProfileCol: {
     alignItems: 'center',
@@ -392,13 +620,16 @@ const styles = StyleSheet.create({
   statProfileValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#23703F',
   },
   statProfileLabel: {
     fontSize: 10,
-    color: '#6B7280',
     marginTop: 2,
     fontWeight: '600',
+  },
+  sectionCard: {
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    borderWidth: 1,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -406,9 +637,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
   viewAllBadges: {
     fontSize: 12,
-    color: '#23703F',
     fontWeight: '600',
   },
   badgesRow: {
@@ -419,336 +654,282 @@ const styles = StyleSheet.create({
   },
   badgeItem: {
     alignItems: 'center',
+    gap: 6,
   },
   badgeIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
   badgeLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#374151',
     fontFamily: theme.fontFamily,
   },
   menuCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: theme.borderRadius.lg,
     paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderWidth: 1,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: 'space-between',
+  },
+  menuChevronBox: {
+    paddingLeft: 4,
+  },
+  menuChevron: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  menuLabelContainer: {
+    flex: 1,
+    paddingHorizontal: 12,
+    alignItems: 'flex-end',
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  menuSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    fontFamily: theme.fontFamily,
   },
   menuIconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#EAF4ED',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 12,
-  },
-  menuLabelContainer: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  menuTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1F2937',
-    fontFamily: theme.fontFamily,
-  },
-  menuSubtitle: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginTop: 1,
-  },
-  menuChevronBox: {
-    paddingLeft: 8,
-  },
-  menuChevron: {
-    fontSize: 18,
-    color: '#9CA3AF',
-    fontWeight: 'bold',
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 16,
+  },
+  logoutButton: {
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    alignItems: 'center',
+    marginTop: 4,
+    borderWidth: 1,
   },
   logoutContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
   },
-  userCard: {
-    backgroundColor: colors.surface,
-    padding: theme.spacing.lg,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  avatarText: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
-    fontFamily: theme.fontFamily,
-  },
-  userName: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: '800',
-    fontFamily: theme.fontFamily,
-    color: colors.text,
-  },
-  userEmail: {
-    fontSize: theme.typography.sizes.sm,
-    color: colors.textSecondary,
-    fontFamily: theme.fontFamily,
-    marginTop: 2,
-  },
-  roleTag: {
-    backgroundColor: colors.primarySoft,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
-    marginTop: theme.spacing.sm,
-  },
-  roleTagText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: theme.fontFamily,
-  },
-  sectionCard: {
-    backgroundColor: colors.surface,
-    padding: theme.spacing.md,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontFamily: theme.fontFamily,
-    color: colors.textSecondary,
-    textAlign: 'right',
-    marginBottom: theme.spacing.sm,
-  },
-  settingRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  settingLabel: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-    fontFamily: theme.fontFamily,
-  },
-  settingValue: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontFamily: theme.fontFamily,
-  },
-  settingDivider: {
-    height: 1,
-    backgroundColor: colors.borderLight,
-    marginVertical: 4,
-  },
-  logoutButton: {
-    backgroundColor: colors.errorLight,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FECACA',
-    marginTop: 8,
-  },
   logoutText: {
-    color: colors.error,
+    color: '#DC2626',
+    fontSize: 14,
     fontWeight: '800',
     fontFamily: theme.fontFamily,
-    fontSize: 15,
   },
   guestCard: {
-    backgroundColor: colors.surface,
+    borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.xl,
-    borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
-  guestIcon: {
-    fontSize: 48,
-    marginBottom: theme.spacing.sm,
+  guestIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   guestTitle: {
-    fontSize: theme.typography.sizes.lg,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
     fontFamily: theme.fontFamily,
-    color: colors.text,
   },
   guestSubtitle: {
-    fontSize: theme.typography.sizes.sm,
-    color: colors.textSecondary,
-    fontFamily: theme.fontFamily,
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 22,
-    marginVertical: theme.spacing.md,
+    lineHeight: 20,
+    marginBottom: 16,
+    fontFamily: theme.fontFamily,
+  },
+  guestPrefBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 13,
     width: '100%',
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   primaryBtnText: {
-    color: '#FFF',
-    fontFamily: theme.fontFamily,
-    fontWeight: '800',
+    color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: 'bold',
+    fontFamily: theme.fontFamily,
   },
   secondaryBtn: {
-    backgroundColor: colors.surfaceAlt,
-    paddingVertical: 13,
     width: '100%',
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   secondaryBtnText: {
-    color: colors.text,
+    fontSize: 15,
+    fontWeight: 'bold',
     fontFamily: theme.fontFamily,
-    fontWeight: '700',
-    fontSize: 14,
   },
   exitGuestBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   exitGuestBtnText: {
-    color: colors.error,
-    fontFamily: theme.fontFamily,
-    fontWeight: '700',
+    color: '#DC2626',
     fontSize: 13,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
+  choiceModalBox: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 20,
+    padding: 22,
+    borderWidth: 1,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  modalHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  modalSubheading: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginBottom: 12,
+  },
+  choiceCard: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  choiceTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  choiceDesc: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  checkedCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uncheckedCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+  },
+  modalCloseBtn: {
+    width: '100%',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCloseText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   confirmBox: {
     width: '100%',
     maxWidth: 340,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 22,
+    borderRadius: 20,
+    padding: 24,
     alignItems: 'center',
-  },
-  guestIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#EAF4ED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    borderWidth: 1,
   },
   confirmIconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   confirmTitle: {
-    fontFamily: theme.fontFamily,
     fontSize: 17,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 6,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   confirmMessage: {
-    fontFamily: theme.fontFamily,
     fontSize: 13,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
   },
   confirmButtonsRow: {
-    flexDirection: 'row-reverse',
-    gap: 10,
+    flexDirection: 'row',
+    gap: 12,
     width: '100%',
   },
   confirmLogoutBtn: {
     flex: 1,
-    backgroundColor: colors.error,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
   },
   confirmLogoutText: {
     color: '#FFF',
-    fontFamily: theme.fontFamily,
-    fontSize: 13,
-    fontWeight: '800',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   confirmCancelBtn: {
     flex: 1,
-    backgroundColor: colors.surfaceAlt,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   confirmCancelText: {
-    color: colors.text,
-    fontFamily: theme.fontFamily,
-    fontSize: 13,
-    fontWeight: '700',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });

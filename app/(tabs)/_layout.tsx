@@ -12,13 +12,16 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
-import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useLanguage } from '../../src/context/LanguageContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { AppIcon } from '../../src/components/AppIcon';
 
 export default function TabLayout() {
   const { user, isGuest, loading, role, isAdmin } = useAuth();
+  const { t } = useLanguage();
+  const { colors, isDark } = useTheme();
 
   // إذا تم تسجيل الخروج ولم يعد هناك مستخدم ولا وضع ضيف، يتم الإخراج فوراً لشاشة الدخول
   if (!loading && !user && !isGuest) {
@@ -33,8 +36,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.tabBarActive,
         tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E5E7EB',
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
@@ -42,18 +45,18 @@ export default function TabLayout() {
           elevation: 10,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.06,
+          shadowOpacity: isDark ? 0.25 : 0.06,
           shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontFamily: theme.fontFamily,
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
           marginTop: 2,
         },
         headerStyle: {
-          backgroundColor: '#FFFFFF',
-          borderBottomColor: '#E5E7EB',
+          backgroundColor: colors.surface,
+          borderBottomColor: colors.border,
           borderBottomWidth: 1,
         },
         headerTintColor: colors.primary,
@@ -68,7 +71,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('tabs.home'),
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name="home" color={String(color || colors.primary)} focused={focused} size={22} />
@@ -80,7 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          title: t('tabs.reports'),
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name="reports" color={String(color || colors.primary)} focused={focused} size={22} />
@@ -93,11 +96,11 @@ export default function TabLayout() {
         name="add"
         options={{
           title: '',
-          headerTitle: 'Add Report',
+          headerTitle: t('add.title'),
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <View style={styles.centerFabButton}>
-              <AppIcon name="plus" size={24} color="#FFFFFF" focused />
+            <View style={[styles.centerFabButton, { backgroundColor: isDark ? '#4ADE80' : '#23703F' }]}>
+              <AppIcon name="plus" size={24} color={isDark ? '#061C12' : '#FFFFFF'} focused />
             </View>
           ),
         }}
@@ -107,7 +110,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Chat',
+          title: t('tabs.chat'),
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name="chat" color={String(color || colors.primary)} focused={focused} size={22} />
@@ -119,7 +122,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Map',
+          title: t('tabs.map'),
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <AppIcon name="map" color={String(color || colors.primary)} focused={focused} size={22} />
@@ -131,7 +134,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('tabs.profile'),
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },
           headerShown: false,
@@ -142,11 +145,10 @@ export default function TabLayout() {
         name="admin"
         options={{
           title: 'Admin',
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
           headerShown: false,
-          href: hasAdminAccess ? '/admin' : null,
-          tabBarIcon: ({ color, focused }) => (
-            <AppIcon name="shield" color={String(color || colors.primary)} focused={focused} size={22} />
-          ),
+          href: hasAdminAccess ? '/(tabs)/admin' : null,
         }}
       />
     </Tabs>
@@ -155,17 +157,16 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   centerFabButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#23703F',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Platform.OS === 'ios' ? 18 : 12,
-    elevation: 6,
-    shadowColor: '#23703F',
+    elevation: 8,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 6,
+    top: -12,
   },
 });

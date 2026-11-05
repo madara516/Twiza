@@ -233,7 +233,7 @@ export class AuthService {
    */
   static async updateProfileData(
     uid: string,
-    data: { displayName?: string; language?: 'ar' | 'en' }
+    data: { displayName?: string; language?: 'ar' | 'fr' | 'en' }
   ): Promise<void> {
     if (!db) return;
 

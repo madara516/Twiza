@@ -1,0 +1,120 @@
+{
+  "app_name": "Twiza",
+  "pilot_city": "Laghouat",
+  "tagline": "Pour un Laghouat plus vert et solidaire",
+  "hero_subtitle": "Plateforme citoyenne intelligente pour une ville propre",
+  "get_started": "Commencer",
+  "welcome": "Bienvenue sur Twiza",
+  "welcome_desc": "Application pour localiser les bacs à déchets, points d'apport volontaire et signaler les décharges sauvages.",
+  "language": {
+    "title": "Langue de l'application",
+    "choose": "Choisir la langue",
+    "ar": "العربية",
+    "fr": "Français",
+    "en": "English",
+    "ar_desc": "Arabe (Par défaut)",
+    "fr_desc": "Français (Langue officielle)",
+    "en_desc": "Anglais (International)"
+  },
+  "theme": {
+    "title": "Thème de l'application",
+    "choose": "Choisir le thème",
+    "light": "Mode Clair",
+    "dark": "Mode Sombre (Vert Forêt)",
+    "light_desc": "Interface lumineuse et claire pour la journée",
+    "dark_desc": "Vert émeraude profond relaxant pour les yeux"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "map": "Carte",
+    "add": "Ajouter",
+    "chat": "Chat Quartier",
+    "reports": "Mes Rapports",
+    "profile": "Profil"
+  },
+  "home": {
+    "greeting": "Bonjour",
+    "motto": "Ensemble pour un Laghouat plus propre et plus beau !",
+    "citizen_rank": "Citoyen Éco ★ 5",
+    "impact_month": "Votre impact ce mois-ci",
+    "stat_volunteering": "Bénévolat",
+    "stat_twizas": "Twizas",
+    "stat_reports": "Rapports",
+    "stat_district": "Au quartier",
+    "impact_title": "Votre Impact",
+    "view_details": "Voir détails →",
+    "next_event": "Prochain Événement Twiza",
+    "next_event_title": "Nettoyage de la Vieille Médina",
+    "volunteers": "bénévoles",
+    "location_demo": "Avenue Principale",
+    "join": "Rejoindre",
+    "nearby_bins": "Bacs à proximité",
+    "bins_count": "12 bacs trouvés à proximité →",
+    "add_report": "Ajouter un rapport",
+    "clean_action": "Aidez à nettoyer Laghouat →"
+  },
+  "kinds": {
+    "bin": "Bac à déchets",
+    "collection_point": "Point de collecte",
+    "wild_dump": "Décharge sauvage"
+  },
+  "statuses": {
+    "sent": "Envoyé",
+    "received": "Reçu",
+    "in_repair": "En cours",
+    "fixed": "Résolu",
+    "rejected": "Rejeté",
+    "pending": "En attente"
+  },
+  "reports": {
+    "title": "Mes Rapports",
+    "filter_all": "Tous",
+    "filter_processing": "En cours d'étude",
+    "filter_in_progress": "Intervention",
+    "filter_solved": "Résolus",
+    "empty_title": "Aucun rapport enregistré",
+    "empty_desc": "Si vous repérez une décharge sauvage ou un bac endommagé, contribuez à embellir notre ville et signalez-le.",
+    "new_report": "Envoyer le premier rapport"
+  },
+  "add": {
+    "title": "Ajouter un rapport ou un lieu",
+    "add_photo": "Ajouter une photo",
+    "photo_desc": "Aide les équipes d'intervention et bénévoles sur le terrain",
+    "camera": "Appareil photo",
+    "gallery": "Galerie",
+    "category": "Catégorie",
+    "location": "Localisation",
+    "gps_detect": "Détecter ma position",
+    "severity": "Niveau d'urgence",
+    "severity_small": "Faible",
+    "severity_medium": "Moyen",
+    "severity_large": "Critique / Élevé",
+    "notes": "Description & Remarques",
+    "notes_placeholder": "Ajoutez des précisions pour aider l'équipe...",
+    "submit": "Soumettre le rapport",
+    "submitting": "Envoi en cours..."
+  },
+  "profile": {
+    "title": "Profil",
+    "role_admin": "Superviseur Municipal",
+    "role_citizen": "Citoyen Engagé",
+    "badges": "Badges & Récompenses",
+    "view_all": "Voir tout →",
+    "account_info": "Informations du compte",
+    "notifications": "Notifications",
+    "enabled": "Activées",
+    "logout": "Se déconnecter",
+    "guest_title": "Vous naviguez en mode Invité",
+    "guest_desc": "Vous pouvez explorer la carte sans compte. Pour signaler ou ajouter des bacs, veuillez vous connecter.",
+    "login": "Se connecter",
+    "register": "Créer un compte",
+    "exit_guest": "Quitter le mode invité"
+  },
+  "auth": {
+    "login_title": "Connexion",
+    "email": "Adresse Email",
+    "password": "Mot de passe",
+    "enter_as_guest": "Continuer en tant qu'invité",
+    "find_closest_bin": "Bac le plus proche 📍"
+  }
+}
