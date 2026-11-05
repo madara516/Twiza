@@ -250,6 +250,48 @@ function run() {
   assert(sampleCsvOutput.charCodeAt(0) === 0xFEFF, 'ملف الـ CSV يبدأ بـ UTF-8 BOM لضمان قراءة العربية في Excel بدون تشويه');
   assert(sampleCsvOutput.includes('حالة التأخر'), 'ترويسة الـ CSV تتضمن عمود خاص بحالة التأخر للبلدية');
 
+  console.log('\n--- 11. اختبارات شات الحومة (Neighborhood Chat - Phase 4) ---');
+  // التحقق من صحة بيانات رسائل الشات
+  function validateChatMessage(params) {
+    if (!params.text || !params.text.trim()) throw new Error('لا يمكن إرسال رسالة فارغة');
+    if (!params.neighborhood) throw new Error('يجب تحديد الحي');
+    if (!params.senderId) throw new Error('يجب تسجيل الدخول لإرسال رسالة');
+    return {
+      neighborhood: params.neighborhood,
+      senderId: params.senderId,
+      senderName: params.senderName || 'مواطن',
+      senderRole: params.senderRole === 'admin' ? 'admin' : 'citizen',
+      text: params.text.trim(),
+      createdAt: Date.now(),
+    };
+  }
+
+  let chatErrorEmpty = false;
+  try {
+    validateChatMessage({ text: '   ', neighborhood: 'الواحات', senderId: 'user-1' });
+  } catch {
+    chatErrorEmpty = true;
+  }
+  assert(chatErrorEmpty, 'منع إرسال الرسائل الفارغة في شات الحومة');
+
+  let chatErrorNoUser = false;
+  try {
+    validateChatMessage({ text: 'سلام جيراني', neighborhood: 'الواحات', senderId: '' });
+  } catch {
+    chatErrorNoUser = true;
+  }
+  assert(chatErrorNoUser, 'اشتراط وجود مستخدم مسجل لإرسال رسالة');
+
+  const validMsg = validateChatMessage({
+    text: 'كاين حملة نظافة غدوة الصباح في ساحة الحي 🌱',
+    neighborhood: 'وسط المدينة (البلاد)',
+    senderId: 'admin-1',
+    senderName: 'عمي أحمد',
+    senderRole: 'admin',
+  });
+  assert(validMsg.senderRole === 'admin', 'تمييز رسائل المشرف بشارة مشرف بلدية');
+  assert(validMsg.neighborhood === 'وسط المدينة (البلاد)', 'ربط الرسالة بالحي الصحيح');
+
   console.log('\n========================================================');
   console.log(`📊 النتيجة النهائية: ${passed} فحص ناجح ✅ | ${failed} فاشل ❌`);
   console.log('========================================================\n');

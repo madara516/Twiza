@@ -85,15 +85,17 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.screenContainer}>
-          {/* الشعار والهوية الرسمية: الدرع بالأعلى وعنوان "التويزة" مباشرة تحته */}
+          {/* الشعار والهوية الرسمية: رمز الدرع T منفرداً بدون نصوص مدمجة مطابقة للموك آب */}
           <View style={styles.logoSection}>
             <View style={styles.shieldCropContainer}>
               <Image
-                source={require('../../assets/images/shield_clean.png')}
+                source={require('../../assets/images/t_shield_logo.png')}
                 style={styles.logoShield}
+                resizeMode="contain"
               />
             </View>
-            <Text style={styles.brandTitle}>التويزة</Text>
+            <Text style={styles.brandTitle}>Twiza</Text>
+            <Text style={styles.brandSubtitle}>Together for a cleaner Laghouat</Text>
           </View>
 
           {/* صندوق رسالة الخطأ إن وجد */}
@@ -244,12 +246,19 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontFamily: 'Cairo-Bold',
-    fontSize: 46,
+    fontSize: 42,
     fontWeight: '900',
-    color: '#1B4D3E',
+    color: '#23703F',
     marginTop: 8,
     textAlign: 'center',
     letterSpacing: -0.5,
+  },
+  brandSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   errorBox: {
     width: '100%',

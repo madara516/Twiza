@@ -75,7 +75,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: '100vh' as any,
     width: '100%',
-    direction: 'rtl' as any,
   },
   webPhoneContainer: {
     width: '100%',
@@ -85,7 +84,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F5F0',
     overflow: 'hidden',
     position: 'relative',
-    direction: 'rtl' as any,
     ...(Platform.OS === 'web'
       ? ({
           boxShadow: '0 12px 36px rgba(0,0,0,0.15)',

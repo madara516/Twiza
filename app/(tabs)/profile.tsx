@@ -24,6 +24,7 @@ import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { getCurrentLanguage, setupRTL } from '../../src/i18n';
 import { AuthService } from '../../src/services/authService';
+import { AppIcon } from '../../src/components/AppIcon';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -90,6 +91,25 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* الترويسة العلوية النظيفة مع زر العودة */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity
+          style={styles.headerBackBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.headerBackIcon}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <TouchableOpacity
+          style={styles.headerGearBtn}
+          onPress={handleLanguageToggle}
+          activeOpacity={0.7}
+        >
+          <AppIcon name="settings" size={20} color={colors.primary} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={styles.container}>
         {user ? (
           <>
@@ -101,34 +121,123 @@ export default function ProfileScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.userName}>{profile?.displayName || 'مواطن'}</Text>
-              <Text style={styles.userEmail}>{user.email}</Text>
+              <Text style={styles.userName}>{profile?.displayName || user.email?.split('@')[0] || 'Adel Bessaoudi'}</Text>
+              <Text style={styles.userEmail}>@{user.email?.split('@')[0] || 'citizen'}</Text>
 
               <View style={styles.roleTag}>
                 <Text style={styles.roleTagText}>
-                  {isAdmin || role === 'admin' ? '🛡️ مسؤول النظام (Admin)' : '👤 مواطن (Citizen)'}
+                  {isAdmin || role === 'admin' ? '🛡️ Admin' : '★ Citizen'}
                 </Text>
+              </View>
+
+              {/* أعمدة الإحصائيات الأربعة المطابقة للموك آب */}
+              <View style={styles.statsProfileRow}>
+                <View style={styles.statProfileCol}>
+                  <Text style={styles.statProfileValue}>12h</Text>
+                  <Text style={styles.statProfileLabel}>Volunteering</Text>
+                </View>
+                <View style={styles.statProfileCol}>
+                  <Text style={styles.statProfileValue}>8</Text>
+                  <Text style={styles.statProfileLabel}>Twizas</Text>
+                </View>
+                <View style={styles.statProfileCol}>
+                  <Text style={styles.statProfileValue}>3</Text>
+                  <Text style={styles.statProfileLabel}>Reports</Text>
+                </View>
+                <View style={styles.statProfileCol}>
+                  <Text style={styles.statProfileValue}>#3</Text>
+                  <Text style={styles.statProfileLabel}>In District</Text>
+                </View>
               </View>
             </View>
 
-            {/* إعدادات الحساب */}
+            {/* الأوسمة والشارات (Badges) المطابقة للموك آب */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeader}>الإعدادات</Text>
+              <View style={styles.sectionTitleRow}>
+                <TouchableOpacity onPress={() => {}}>
+                  <Text style={styles.viewAllBadges}>View all &gt;</Text>
+                </TouchableOpacity>
+                <Text style={styles.sectionHeader}>Badges</Text>
+              </View>
 
+              <View style={styles.badgesRow}>
+                <View style={styles.badgeItem}>
+                  <View style={[styles.badgeIconCircle, { backgroundColor: '#EAF4ED' }]}>
+                    <AppIcon name="shield" size={20} color="#23703F" focused />
+                  </View>
+                  <Text style={styles.badgeLabel}>Green Hero</Text>
+                </View>
+
+                <View style={styles.badgeItem}>
+                  <View style={[styles.badgeIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                    <AppIcon name="star" size={20} color="#D97706" focused />
+                  </View>
+                  <Text style={styles.badgeLabel}>Community Leader</Text>
+                </View>
+
+                <View style={styles.badgeItem}>
+                  <View style={[styles.badgeIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                    <AppIcon name="heart" size={20} color="#0284C7" focused />
+                  </View>
+                  <Text style={styles.badgeLabel}>Twiza Star</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* قائمة الإعدادات والخيارات مع الأيقونات المطابقة للموك آب */}
+            <View style={styles.menuCard}>
               {/* تبديل اللغة */}
               <TouchableOpacity
-                style={styles.settingRow}
+                style={styles.menuRow}
                 onPress={handleLanguageToggle}
                 activeOpacity={0.7}
               >
-                <Text style={styles.settingValue}>
-                  {lang === 'ar' ? 'العربية (افتراضية)' : 'English'} 🌐
-                </Text>
-                <Text style={styles.settingLabel}>لغة التطبيق</Text>
+                <View style={styles.menuChevronBox}>
+                  <Text style={styles.menuChevron}>›</Text>
+                </View>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuTitle}>Language / لغة التطبيق</Text>
+                  <Text style={styles.menuSubtitle}>{lang === 'ar' ? 'العربية' : 'English'}</Text>
+                </View>
+                <View style={styles.menuIconCircle}>
+                  <AppIcon name="settings" size={18} color="#23703F" />
+                </View>
               </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              {/* معلومات الحساب */}
+              <View style={styles.menuRow}>
+                <View style={styles.menuChevronBox}>
+                  <Text style={styles.menuChevron}>›</Text>
+                </View>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuTitle}>Account Information</Text>
+                  <Text style={styles.menuSubtitle}>{user.email}</Text>
+                </View>
+                <View style={styles.menuIconCircle}>
+                  <AppIcon name="user" size={18} color="#23703F" />
+                </View>
+              </View>
+
+              <View style={styles.menuDivider} />
+
+              {/* الإشعارات */}
+              <View style={styles.menuRow}>
+                <View style={styles.menuChevronBox}>
+                  <Text style={styles.menuChevron}>›</Text>
+                </View>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuTitle}>Notifications</Text>
+                  <Text style={styles.menuSubtitle}>Enabled</Text>
+                </View>
+                <View style={styles.menuIconCircle}>
+                  <AppIcon name="bell" size={18} color="#23703F" />
+                </View>
+              </View>
             </View>
 
-            {/* زر تسجيل الخروج الصريح */}
+            {/* زر تسجيل الخروج الصريح المطابق لـ Screen 11 */}
             <TouchableOpacity
               style={styles.logoutButton}
               onPress={handleLogoutPress}
@@ -136,9 +245,12 @@ export default function ProfileScreen() {
               activeOpacity={0.85}
             >
               {isLoggingOut ? (
-                <ActivityIndicator color={colors.error} />
+                <ActivityIndicator color="#DC2626" />
               ) : (
-                <Text style={styles.logoutText}>تسجيل الخروج 🚪</Text>
+                <View style={styles.logoutContent}>
+                  <AppIcon name="logout" size={18} color="#DC2626" />
+                  <Text style={styles.logoutText}>Log Out</Text>
+                </View>
               )}
             </TouchableOpacity>
           </>
@@ -226,6 +338,147 @@ const styles = StyleSheet.create({
   container: {
     padding: theme.spacing.md,
     gap: theme.spacing.md,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerBackBtn: {
+    padding: 6,
+  },
+  headerBackIcon: {
+    fontSize: 26,
+    color: '#1F2937',
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
+  },
+  headerGearBtn: {
+    padding: 6,
+  },
+  statsProfileRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingTop: 16,
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  statProfileCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statProfileValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#23703F',
+  },
+  statProfileLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllBadges: {
+    fontSize: 12,
+    color: '#23703F',
+    fontWeight: '600',
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  badgeItem: {
+    alignItems: 'center',
+  },
+  badgeIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  badgeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+    fontFamily: theme.fontFamily,
+  },
+  menuCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 4,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EAF4ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  menuLabelContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
+  },
+  menuSubtitle: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  menuChevronBox: {
+    paddingLeft: 8,
+  },
+  menuChevron: {
+    fontSize: 18,
+    color: '#9CA3AF',
+    fontWeight: 'bold',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 16,
+  },
+  logoutContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   userCard: {
     backgroundColor: colors.surface,

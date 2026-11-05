@@ -64,6 +64,7 @@ export default function ReportsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'reports' | 'places'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'processing' | 'in_progress' | 'solved'>('all');
 
   // نافذة إضافة تقرير سريع
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -155,11 +156,15 @@ export default function ReportsScreen() {
     return list.sort((a, b) => b.createdAt - a.createdAt);
   }, [reports, myPlaces]);
 
-  // التصفية حسب التبويب
+  // التصفية حسب الحالة ونوع التبويب المطابقة للموك آب
   const filteredItems = unifiedItems.filter((item) => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'reports') return item.sourceType === 'report';
-    if (activeTab === 'places') return item.sourceType === 'place';
+    if (activeTab === 'reports' && item.sourceType !== 'report') return false;
+    if (activeTab === 'places' && item.sourceType !== 'place') return false;
+
+    if (statusFilter === 'processing' && item.status !== 'sent' && item.status !== 'received') return false;
+    if (statusFilter === 'in_progress' && item.status !== 'in_repair' && item.status !== 'pending') return false;
+    if (statusFilter === 'solved' && item.status !== 'fixed') return false;
+
     return true;
   });
 
@@ -251,38 +256,41 @@ export default function ReportsScreen() {
         </View>
       </View>
 
-      {/* 2. شريط التبديل الفرعي */}
-      <View style={styles.filterRow}>
+      {/* 2. شريط فلاتر الحالات المطابق تماماً لـ Screen 3 في الموك آب */}
+      <View style={styles.statusPillsRow}>
         <TouchableOpacity
-          style={[styles.filterTab, activeTab === 'all' && styles.filterTabActive]}
-          onPress={() => setActiveTab('all')}
+          style={[styles.statusPill, statusFilter === 'all' && styles.statusPillActive]}
+          onPress={() => setStatusFilter('all')}
         >
-          <Text
-            style={[styles.filterTabText, activeTab === 'all' && styles.filterTabTextActive]}
-          >
-            الكل ({unifiedItems.length})
+          <Text style={[styles.statusPillText, statusFilter === 'all' && styles.statusPillTextActive]}>
+            All ({unifiedItems.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterTab, activeTab === 'reports' && styles.filterTabActive]}
-          onPress={() => setActiveTab('reports')}
+          style={[styles.statusPill, statusFilter === 'processing' && styles.statusPillActiveBlue]}
+          onPress={() => setStatusFilter('processing')}
         >
-          <Text
-            style={[styles.filterTabText, activeTab === 'reports' && styles.filterTabTextActive]}
-          >
-            البلاغات ({reports.length})
+          <Text style={[styles.statusPillText, statusFilter === 'processing' && styles.statusPillTextActiveBlue]}>
+            Processing
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.filterTab, activeTab === 'places' && styles.filterTabActive]}
-          onPress={() => setActiveTab('places')}
+          style={[styles.statusPill, statusFilter === 'in_progress' && styles.statusPillActiveAmber]}
+          onPress={() => setStatusFilter('in_progress')}
         >
-          <Text
-            style={[styles.filterTabText, activeTab === 'places' && styles.filterTabTextActive]}
-          >
-            الأماكن المضافة ({myPlaces.length})
+          <Text style={[styles.statusPillText, statusFilter === 'in_progress' && styles.statusPillTextActiveAmber]}>
+            In Progress
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.statusPill, statusFilter === 'solved' && styles.statusPillActiveGreen]}
+          onPress={() => setStatusFilter('solved')}
+        >
+          <Text style={[styles.statusPillText, statusFilter === 'solved' && styles.statusPillTextActiveGreen]}>
+            Solved
           </Text>
         </TouchableOpacity>
       </View>
@@ -629,6 +637,57 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.surfaceAlt,
   },
+  statusPillsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    gap: 8,
+  },
+  statusPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  statusPillActive: {
+    backgroundColor: '#23703F',
+    borderColor: '#23703F',
+  },
+  statusPillActiveBlue: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  statusPillActiveAmber: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  statusPillActiveGreen: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#22C55E',
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    fontFamily: theme.fontFamily,
+  },
+  statusPillTextActive: {
+    color: '#FFFFFF',
+  },
+  statusPillTextActiveBlue: {
+    color: '#2563EB',
+  },
+  statusPillTextActiveAmber: {
+    color: '#D97706',
+  },
+  statusPillTextActiveGreen: {
+    color: '#16A34A',
+  },
   filterTabActive: {
     backgroundColor: colors.primary,
   },
@@ -838,7 +897,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily,
     fontSize: 11,
     color: colors.textSecondary,
-    direction: 'ltr',
+    writingDirection: 'ltr',
   },
   centerContainer: {
     flex: 1,

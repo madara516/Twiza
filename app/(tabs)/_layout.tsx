@@ -1,16 +1,21 @@
 /**
- * مخطط أشرطة التبويب السفلية (Bottom Tabs Layout)
+ * مخطط أشرطة التبويب السفلية الخمسة المطابقة للموك آب (Mockup 5-Tab Bar Layout)
  * 
- * بالدارجة: هذا هو شريط الأزرار التحتاني اللي يتنقل بيه المستخدم بين:
- * الخريطة، إضافة مكان، تقاريري، وحسابي، مع هوية بصرية متناسقة بالأخضر الغابي (#1B4D3E).
+ * بالدارجة: شريط الأزرار السفلي الأصلي المكون من 5 تبويبات مع الزر الدائري الأخضر البارز (+) في المنتصف:
+ * 1. Home (الرئيسية)
+ * 2. Reports (تقاريري)
+ * 3. (+) Add (إضافة تقرير/مكان - زر دائري مرتفع)
+ * 4. Chat (شات الحومة)
+ * 5. Map (الخريطة الحرة)
  */
 
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
-import { Text } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { AppIcon } from '../../src/components/AppIcon';
 
 export default function TabLayout() {
   const { user, isGuest, loading, role, isAdmin } = useAuth();
@@ -25,29 +30,30 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderLight,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E5E7EB',
           borderTopWidth: 1,
-          height: 62,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 8,
-          elevation: 8,
+          elevation: 10,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 6,
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontFamily: theme.fontFamily,
-          fontSize: 12,
-          fontWeight: '700',
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
         },
         headerStyle: {
-          backgroundColor: colors.surface,
-          borderBottomColor: colors.borderLight,
+          backgroundColor: '#FFFFFF',
+          borderBottomColor: '#E5E7EB',
           borderBottomWidth: 1,
         },
         headerTintColor: colors.primary,
@@ -58,63 +64,108 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* 1. الرئيسية (Home) */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'الخريطة',
+          title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20 }}>🗺️</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon name="home" color={String(color || colors.primary)} focused={focused} size={22} />
           ),
         }}
       />
 
-      <Tabs.Screen
-        name="add"
-        options={{
-          title: 'إضافة مكان',
-          headerTitle: 'إضافة مكان جديد',
-          headerShown: true,
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20 }}>➕</Text>
-          ),
-        }}
-      />
-
+      {/* 2. تقاريري (Reports) */}
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'تقاريري',
+          title: 'Reports',
           headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20 }}>📋</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon name="reports" color={String(color || colors.primary)} focused={focused} size={22} />
           ),
         }}
       />
 
+      {/* 3. زر الإضافة المركزي البارز (+) المطابق للموك آب */}
+      <Tabs.Screen
+        name="add"
+        options={{
+          title: '',
+          headerTitle: 'Add Report',
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.centerFabButton}>
+              <AppIcon name="plus" size={24} color="#FFFFFF" focused />
+            </View>
+          ),
+        }}
+      />
+
+      {/* 4. شات الحومة (Chat) */}
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon name="chat" color={String(color || colors.primary)} focused={focused} size={22} />
+          ),
+        }}
+      />
+
+      {/* 5. الخريطة (Map) */}
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon name="map" color={String(color || colors.primary)} focused={focused} size={22} />
+          ),
+        }}
+      />
+
+      {/* التبويبات الثانوية التي لا تظهر في الشريط السفلي */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'حسابي',
-          headerTitle: 'الملف الشخصي',
-          headerShown: true,
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20 }}>👤</Text>
-          ),
+          title: 'Profile',
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+          headerShown: false,
         }}
       />
 
       <Tabs.Screen
         name="admin"
         options={{
-          title: 'الإدارة',
+          title: 'Admin',
           headerShown: false,
           href: hasAdminAccess ? '/admin' : null,
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 20 }}>🛡️</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <AppIcon name="shield" color={String(color || colors.primary)} focused={focused} size={22} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centerFabButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#23703F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Platform.OS === 'ios' ? 18 : 12,
+    elevation: 6,
+    shadowColor: '#23703F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+  },
+});

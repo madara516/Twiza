@@ -84,3 +84,13 @@ export interface NeedBinVote {
   uid: string;
   createdAt: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  neighborhood: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'citizen' | 'admin';
+  text: string;
+  createdAt: number;
+}
