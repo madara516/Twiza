@@ -24,6 +24,7 @@ export type PlaceKind = 'bin' | 'collection_point' | 'wild_dump';
 
 export type BinStatus = 'ok' | 'broken' | 'full' | 'missing';
 export type WildDumpStatus = 'active' | 'cleaned';
+export type PlaceStatus = 'pending' | 'approved' | 'rejected' | BinStatus | WildDumpStatus;
 export type WildDumpSeverity = 'small' | 'medium' | 'large';
 export type Severity = WildDumpSeverity;
 
@@ -44,7 +45,7 @@ export interface Place {
   addedBy: string;
   createdAt: number;
   updatedAt: number;
-  status?: BinStatus | WildDumpStatus;
+  status?: PlaceStatus;
   binCount?: number;
   schedule?: string;
   accepts?: string[];

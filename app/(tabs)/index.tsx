@@ -46,7 +46,7 @@ import { VoteService } from '../../src/services/voteService';
 
 export default function MapScreen() {
   const router = useRouter();
-  const { user, role } = useAuth();
+  const { user, role, logout, setGuestMode } = useAuth();
   const mapRef = useRef<FreeMapRef>(null);
 
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
@@ -245,7 +245,7 @@ export default function MapScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* شريط الفلاتر العلوي */}
+        {/* شريط الفلاتر العلوي الأنيق المطابق للتصميم */}
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[
@@ -268,93 +268,121 @@ export default function MapScreen() {
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'bin' && { backgroundColor: colors.kind.bin },
+              selectedFilter === 'bin' && styles.filterChipActiveGreen,
             ]}
             onPress={() => setSelectedFilter('bin')}
             activeOpacity={0.8}
           >
+            <View style={[styles.filterDot, { backgroundColor: colors.kind.bin }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'bin' && styles.filterTextActive,
+                selectedFilter === 'bin' && styles.filterTextActiveColored,
               ]}
             >
-              سلات 🟢
+              سلات
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'collection_point' && {
-                backgroundColor: colors.kind.collection_point,
-              },
+              selectedFilter === 'collection_point' && styles.filterChipActiveForest,
             ]}
             onPress={() => setSelectedFilter('collection_point')}
             activeOpacity={0.8}
           >
+            <View style={[styles.filterDot, { backgroundColor: colors.kind.collection_point }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'collection_point' && styles.filterTextActive,
+                selectedFilter === 'collection_point' && styles.filterTextActiveColored,
               ]}
             >
-              نقاط تجميع 🌲
+              نقاط تجميع
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'wild_dump' && {
-                backgroundColor: colors.kind.wild_dump,
-              },
+              selectedFilter === 'wild_dump' && styles.filterChipActiveRed,
             ]}
             onPress={() => setSelectedFilter('wild_dump')}
             activeOpacity={0.8}
           >
+            <View style={[styles.filterDot, { backgroundColor: colors.kind.wild_dump }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'wild_dump' && styles.filterTextActive,
+                selectedFilter === 'wild_dump' && styles.filterTextActiveColored,
               ]}
             >
-              نقاط سوداء 🔴
+              نقاط سوداء
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* الخريطة المجانية المتكاملة */}
+        {/* الخريطة المجانية المتكاملة مع تمرير موقع المستخدم */}
         <FreeMap
           ref={mapRef}
           places={filteredPlaces}
+          userLocation={userLocation}
           initialCenter={ACTIVE_REGION.center}
           serviceBounds={ACTIVE_REGION.bounds}
           onSelectPlace={(place) => setSelectedPlace(place)}
         />
 
-        {/* الأزرار العائمة على الخريطة */}
-        <View style={styles.fabColumn}>
-          {/* زر الموقع الحالي GPS */}
+        {/* أزرار التحكم العائمة الدائرية في يمين/يسار الخريطة */}
+        <View style={styles.fabColumnRight}>
+          {/* زر التمركز وإعادة التوجيه GPS */}
           <TouchableOpacity
-            style={styles.fabBtn}
+            style={styles.mapToolBtn}
             onPress={handleGetCurrentLocation}
             activeOpacity={0.85}
           >
             {isLocating ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <Text style={styles.fabIcon}>📍</Text>
+              <Text style={styles.mapToolIcon}>⌖</Text>
             )}
+          </TouchableOpacity>
+
+          {/* زر توجيه البوصلة / استعراض الأغواط كاملة */}
+          <TouchableOpacity
+            style={styles.mapToolBtn}
+            onPress={() => {
+              mapRef.current?.flyTo(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude, 14);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.mapToolIcon}>🧭</Text>
           </TouchableOpacity>
 
           {/* زر طلب حاوية في الحي */}
           <TouchableOpacity
-            style={[styles.fabBtn, styles.needBinSideFab]}
+            style={styles.mapToolBtn}
             onPress={handleNeedBinPress}
             activeOpacity={0.85}
           >
-            <Text style={styles.fabIcon}>🗑️</Text>
+            <Text style={styles.mapToolIcon}>🗑️</Text>
+          </TouchableOpacity>
+
+          {/* زر تسجيل الخروج والعودة لشاشة البداية */}
+          <TouchableOpacity
+            style={[styles.mapToolBtn, styles.mapToolLogoutBtn]}
+            onPress={async () => {
+              try {
+                await logout();
+                setGuestMode(false);
+                router.replace('/(auth)/login');
+              } catch {
+                router.replace('/(auth)/login');
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.mapToolIcon}>🚪</Text>
           </TouchableOpacity>
         </View>
 
@@ -380,7 +408,7 @@ export default function MapScreen() {
           </View>
         ) : null}
 
-        {/* زر "أقرب سلة" التفاعلي العائم في الأسفل */}
+        {/* زر "أقرب سلة ليا" التفاعلي العائم في الأسفل المطابق للمخطط المرجعي */}
         {!selectedPlace ? (
           <TouchableOpacity
             style={styles.nearestBottomFab}
@@ -390,9 +418,12 @@ export default function MapScreen() {
               }
               setShowNearestModal(true);
             }}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
           >
-            <Text style={styles.nearestBottomFabText}>أقرب سلة 🎯</Text>
+            <View style={styles.nearestBottomContent}>
+              <Text style={styles.nearestChevron}>›</Text>
+              <Text style={styles.nearestBottomFabText}>أقرب سلة ليا 📍</Text>
+            </View>
           </TouchableOpacity>
         ) : null}
 
@@ -728,69 +759,102 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row-reverse',
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 10,
-    backgroundColor: colors.surface,
-    gap: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
+    gap: 8,
+    position: 'absolute',
+    top: 8,
+    left: 0,
+    right: 0,
     zIndex: 10,
   },
   filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E6E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    gap: 6,
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipActiveGreen: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#22C55E',
+  },
+  filterChipActiveForest: {
+    backgroundColor: '#E8F3EE',
+    borderColor: '#1B4D3E',
+  },
+  filterChipActiveRed: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#DC2626',
   },
   filterText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
     color: colors.textSecondary,
   },
   filterTextActive: {
     color: '#FFFFFF',
   },
-  fabColumn: {
+  filterTextActiveColored: {
+    color: colors.text,
+  },
+  fabColumnRight: {
     position: 'absolute',
-    top: 65,
-    left: 16,
-    gap: 10,
+    bottom: 95,
+    right: 16,
+    gap: 12,
     zIndex: 20,
   },
-  fabBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: colors.surface,
+  mapToolBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E6E2',
   },
-  needBinSideFab: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#C8E6C9',
+  mapToolLogoutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FECACA',
   },
-  nearestFab: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#C8E6C9',
-  },
-  fabIcon: {
-    fontSize: 20,
+  mapToolIcon: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: 'bold',
   },
   adminSeedBtn: {
     position: 'absolute',
     top: 65,
-    right: 16,
-    backgroundColor: '#1B5E20',
+    left: 16,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -1063,22 +1127,35 @@ const styles = StyleSheet.create({
     bottom: 24,
     alignSelf: 'center',
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    flexDirection: 'row',
+    minWidth: 230,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.32,
+    shadowRadius: 8,
     zIndex: 25,
   },
+  nearestBottomContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 24,
+  },
   nearestBottomFabText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    fontFamily: theme.fontFamily,
+  },
+  nearestChevron: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '300',
   },
   needBinFab: {
     position: 'absolute',

@@ -17,6 +17,7 @@ import {
   updateDoc,
   deleteDoc,
   orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Place, PlaceReport, ReportStatus, UserProfile } from '../types';
@@ -42,10 +43,21 @@ export class AdminService {
       const q = query(placesCol, where('verified', '==', false));
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((d) => ({
+      const items = snapshot.docs.map((d) => ({
         id: d.id,
         ...(d.data() as Omit<Place, 'id'>),
       }));
+
+      if (items.length === 0) {
+        const qPending = query(placesCol, where('status', '==', 'pending'));
+        const snapPending = await getDocs(qPending);
+        return snapPending.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<Place, 'id'>),
+        }));
+      }
+
+      return items;
     } catch (error) {
       console.error('خطأ في جلب الأماكن المعلقة:', error);
       return [];
@@ -63,12 +75,14 @@ export class AdminService {
     const placeRef = doc(db, 'places', placeId);
     await updateDoc(placeRef, {
       verified: true,
-      updatedAt: Date.now(),
+      status: 'approved',
+      step: 3,
+      updatedAt: serverTimestamp(),
     });
   }
 
   /**
-   * رفض المكان المقترح وحذفه من النظام
+   * رفض المكان المقترح
    */
   static async rejectPlace(placeId: string): Promise<void> {
     if (!db) {
@@ -76,7 +90,12 @@ export class AdminService {
     }
 
     const placeRef = doc(db, 'places', placeId);
-    await deleteDoc(placeRef);
+    await updateDoc(placeRef, {
+      status: 'rejected',
+      step: 2,
+      verified: false,
+      updatedAt: serverTimestamp(),
+    });
   }
 
   /**

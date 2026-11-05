@@ -240,6 +240,7 @@ export class PlaceService {
       schedule: placeData.schedule,
       accepts: placeData.accepts,
       verified: false, // غير موثق حتى توافق عليه البلدية
+      status: 'pending',
       owner: 'informal', // ملكية غير رسمية/مقدمة من مواطن
       addedBy: citizenUid,
       createdAt: now,

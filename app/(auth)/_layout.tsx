@@ -1,7 +1,5 @@
 /**
  * مخطط شاشات المصادقة (Auth Stack Layout)
- * 
- * بالدارجة: هذا منظم الشاشات تاع الدخول والتسجيل واسترجاع كلمة المرور.
  */
 
 import React from 'react';
@@ -27,8 +25,7 @@ export default function AuthLayout() {
       <Stack.Screen
         name="login"
         options={{
-          title: 'تسجيل الدخول',
-          headerShown: true,
+          headerShown: false,
         }}
       />
       <Stack.Screen

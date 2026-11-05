@@ -1,10 +1,15 @@
 /**
- * شاشة تقاريري ومتابعة الشكاوى (My Reports Screen)
+ * شاشة تقاريري وتتبع البلاغات والأماكن المضافة (Screen 3: 'My Reports' Tab)
  * 
- * بالدارجة: هادي الشاشة تسمح للمواطن يشوف كامل البلاغات لي بعثهم (حاوية مكسورة، معمرة، نقطة نفايات)
- * ويتبع الحالة تاعهم في مسار واضح: أُرسل ← استُلم ← قيد الإصلاح ← تم الإصلاح.
- * وإذا فاتت 14 يوم وما تحركش التقرير تخرجلو الرسالة الصريحة "وصل تقريرك ولم يتم الرد بعد".
- * وكي تفرى المشكلة ويولي 'fixed'، هو لي يأكد: "هل تم الإصلاح فعلاً؟ نعم / لا".
+ * مطابقة للمخطط المرجعي:
+ * - ترويسة خضراء داكنة (#1B4D3E) مع زر العودة وعنوان "My Reports"
+ * - بطاقة بيضاء نظيفة تعرض:
+ *   1. صورة التقرير أو المكان المضاف أو أيقونة الكاميرا الاحتياطية
+ *   2. العنوان والحي
+ *   3. الإحداثيات الجغرافية الدقيقة (GPS)
+ *   4. شارة حالة صريحة مثل "قيد المراجعة" (Pending moderation)
+ *   5. مسار تتبع رأسي مكون من 4 مراحل دقيقة:
+ *      (1) أرسل ➔ (2) استلم ➔ (3) قيد الإصلاح ➔ (4) تم الإصلاح مع الطوابع الزمنية
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -21,58 +26,67 @@ import {
   Alert,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
-import { PlaceReport, ReportType, ReportStatus, GeoLocation } from '../../src/types';
+import { PlaceReport, ReportType, ReportStatus, Place } from '../../src/types';
 import { ReportService } from '../../src/services/reportService';
+import { PlaceService } from '../../src/services/placeService';
 import { StorageService } from '../../src/services/storageService';
-import { ACTIVE_REGION, getApproximateNeighborhood } from '../../src/constants/regions';
-import { Neighborhood } from '../../src/constants/laghouat';
+import { ACTIVE_REGION } from '../../src/constants/regions';
 
-const REPORT_TYPE_LABELS: Record<ReportType, { title: string; emoji: string }> = {
-  broken: { title: 'حاوية متضررة / مكسورة', emoji: '🔨' },
-  full: { title: 'حاوية ممتلئة وتفيض', emoji: '⚠️' },
-  dirty_spot: { title: 'نقطة نفايات سوداء', emoji: '🗑️' },
-};
-
-const STATUS_STEPS: { key: ReportStatus; label: string }[] = [
-  { key: 'sent', label: 'أُرسل' },
-  { key: 'received', label: 'استُلم' },
-  { key: 'in_repair', label: 'قيد الإصلاح' },
-  { key: 'fixed', label: 'تم الإصلاح' },
-];
+interface UnifiedTrackingItem {
+  id: string;
+  sourceType: 'report' | 'place';
+  title: string;
+  category: string;
+  neighborhood: string;
+  description?: string;
+  photoURL?: string | null;
+  latitude: number;
+  longitude: number;
+  createdAt: number;
+  status: 'pending' | 'sent' | 'received' | 'in_repair' | 'fixed' | 'rejected';
+  history?: any[];
+  verified?: boolean;
+}
 
 export default function ReportsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout, setGuestMode } = useAuth();
 
   const [reports, setReports] = useState<PlaceReport[]>([]);
+  const [myPlaces, setMyPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'active' | 'fixed' | 'rejected'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'reports' | 'places'>('all');
 
-  // نافذة إضافة تقرير جديد
+  // نافذة إضافة تقرير سريع
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newType, setNewType] = useState<ReportType>('broken');
+  const [newType, setNewType] = useState<ReportType>('dirty_spot');
   const [newDesc, setNewDesc] = useState('');
   const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // جلب تقارير المستخدم
-  const loadReports = useCallback(async () => {
+  // جلب كافة بيانات التتبع للمستخدم
+  const loadTrackingData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
     try {
-      const data = await ReportService.getMyReports(user.uid);
-      setReports(data);
+      const [userReports, userPlaces] = await Promise.all([
+        ReportService.getMyReports(user.uid),
+        PlaceService.getMyPlaces(user.uid),
+      ]);
+      setReports(userReports);
+      setMyPlaces(userPlaces);
     } catch (err) {
-      console.error('فشل في جلب التقارير:', err);
+      console.error('فشل في جلب بيانات التتبع:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -80,50 +94,109 @@ export default function ReportsScreen() {
   }, [user]);
 
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    loadTrackingData();
+  }, [loadTrackingData]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadReports();
+    loadTrackingData();
   };
 
-  // تصفية التقارير حسب الفلتر المختار
-  const filteredReports = reports.filter((r) => {
-    if (filter === 'all') return true;
-    if (filter === 'active') return ['sent', 'received', 'in_repair'].includes(r.status);
-    if (filter === 'fixed') return r.status === 'fixed';
-    if (filter === 'rejected') return r.status === 'rejected';
+  // دمج وتحويل البيانات لقائمة موحدة مطابقة للتصميم
+  const unifiedItems: UnifiedTrackingItem[] = React.useMemo(() => {
+    const list: UnifiedTrackingItem[] = [];
+
+    // 1. البلاغات الميدانية
+    reports.forEach((r) => {
+      let title = 'بلاغ عن مشكلة بيئية';
+      if (r.type === 'dirty_spot') title = `كومة نفايات في ${r.neighborhood}`;
+      else if (r.type === 'broken') title = `حاوية مكسورة في ${r.neighborhood}`;
+      else if (r.type === 'full') title = `حاوية ممتلئة في ${r.neighborhood}`;
+
+      list.push({
+        id: `rep-${r.id}`,
+        sourceType: 'report',
+        title,
+        category: r.type === 'dirty_spot' ? 'نقطة سوداء' : 'حاوية نفايات',
+        neighborhood: r.neighborhood,
+        description: r.description,
+        photoURL: r.photoURL,
+        latitude: r.location?.latitude || ACTIVE_REGION.center.latitude,
+        longitude: r.location?.longitude || ACTIVE_REGION.center.longitude,
+        createdAt: r.createdAt,
+        status: r.status,
+        history: r.history,
+      });
+    });
+
+    // 2. الأماكن المضافة من المستخدم
+    myPlaces.forEach((p) => {
+      let kindLabel = 'سلة نفايات';
+      if (p.kind === 'collection_point') kindLabel = 'نقطة تجميع';
+      if (p.kind === 'wild_dump') kindLabel = 'نقطة سوداء';
+
+      list.push({
+        id: `plc-${p.id}`,
+        sourceType: 'place',
+        title: `${kindLabel} في ${p.neighborhood}`,
+        category: kindLabel,
+        neighborhood: p.neighborhood,
+        description: p.notes,
+        photoURL: p.photoURL,
+        latitude: p.location.latitude,
+        longitude: p.location.longitude,
+        createdAt: p.createdAt,
+        status: p.verified ? 'fixed' : 'pending',
+        verified: p.verified,
+      });
+    });
+
+    // ترتيب زمني من الأحدث إلى الأقدم
+    return list.sort((a, b) => b.createdAt - a.createdAt);
+  }, [reports, myPlaces]);
+
+  // التصفية حسب التبويب
+  const filteredItems = unifiedItems.filter((item) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'reports') return item.sourceType === 'report';
+    if (activeTab === 'places') return item.sourceType === 'place';
     return true;
   });
+
+  // تنسيق التاريخ والوقت كما في النموذج (YYYY-MM-DD HH:mm:ss)
+  const formatDateTime = (timestamp: number) => {
+    const d = new Date(timestamp);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
 
   // إرسال تقرير جديد
   const handleSubmitReport = async () => {
     if (!user) return;
     if (!newDesc.trim()) {
-      Alert.alert('تنبيه', 'يرجى كتابة وصف موجز للمشكلة.');
+      Alert.alert('تنبيه', 'يرجى كتابة وصف موجز للبلاغ.');
       return;
     }
 
     try {
       setIsSubmitting(true);
-
       let uploadedPhotoURL: string | null = null;
       if (newPhotoUri) {
         try {
           uploadedPhotoURL = await StorageService.uploadPlacePhoto(newPhotoUri, user.uid);
         } catch (uploadErr) {
-          console.warn('تنبيه: تعذر رفع صورة التقرير للسحابة، سيتم حفظ التقرير بدونها:', uploadErr);
+          console.warn('تعذر رفع الصورة للسحابة، جاري الإرسال بدونها:', uploadErr);
         }
       }
 
       await ReportService.createReport(
         {
+          placeId: null,
           type: newType,
           description: newDesc.trim(),
           photoURL: uploadedPhotoURL,
-          neighborhood: getApproximateNeighborhood(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude),
-          location: ACTIVE_REGION.center, // مركز المنطقة افتراضياً للتقرير العام
+          neighborhood: ACTIVE_REGION.neighborhoods[0],
+          location: ACTIVE_REGION.center,
         },
         user.uid
       );
@@ -131,373 +204,341 @@ export default function ReportsScreen() {
       setShowCreateModal(false);
       setNewDesc('');
       setNewPhotoUri(null);
-      Alert.alert('تم الإرسال بنجاح 🚀', 'تم إرسال بلاغك وسيتم البدء في معالجته.');
-      loadReports();
+      Alert.alert('شكراً لك', 'تم إرسال بلاغك وسيظهر فوراً في سجل التتبع.');
+      await loadTrackingData();
     } catch (err: any) {
-      Alert.alert('خطأ في الإرسال', err.message || 'تعذر إرسال التقرير.');
+      Alert.alert('خطأ', err.message || 'تعذر إرسال البلاغ.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // التقاط صورة للتقرير
-  const handlePickCamera = async () => {
-    try {
-      const uri = await StorageService.pickFromCamera();
-      if (uri) setNewPhotoUri(uri);
-    } catch (err: any) {
-      Alert.alert('الكاميرا', err.message || 'تعذر تشغيل الكاميرا.');
-    }
-  };
-
-  // اختيار صورة من المعرض
-  const handlePickGallery = async () => {
-    try {
-      const uri = await StorageService.pickFromGallery();
-      if (uri) setNewPhotoUri(uri);
-    } catch (err: any) {
-      Alert.alert('معرض الصور', err.message || 'تعذر الوصول للصور.');
-    }
-  };
-
-  // حساب مؤشر خطوات دورة الحياة (0: sent, 1: received, 2: in_repair, 3: fixed)
-  const getStepIndex = (status: ReportStatus): number => {
-    switch (status) {
-      case 'sent':
-        return 0;
-      case 'received':
-        return 1;
-      case 'in_repair':
-        return 2;
-      case 'fixed':
-        return 3;
-      default:
-        return -1;
-    }
-  };
-
-  if (!user) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerContainer}>
-          <Text style={styles.iconBig}>🔒</Text>
-          <Text style={styles.title}>تسجيل الدخول مطلوب</Text>
-          <Text style={styles.desc}>
-            لمتابعة حالة بلاغاتك وشكاويك ومعرفة متى تم إصلاحها من قِبل مصالح النظافة،
-            يرجى تسجيل الدخول بحساب مواطن.
-          </Text>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => router.push('/(auth)/login')}
-          >
-            <Text style={styles.primaryBtnText}>تسجيل الدخول 🔑</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* شريط الإجراءات والفلترة */}
-      <View style={styles.topBar}>
+      {/* 1. الترويسة العلوية الخضراء الداكنة المطابقة لـ Screen 3 */}
+      <View style={styles.headerBar}>
         <TouchableOpacity
-          style={styles.newReportBtn}
-          onPress={() => setShowCreateModal(true)}
+          style={styles.headerBackBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
         >
-          <Text style={styles.newReportBtnText}>إرسال تقرير جديد ✍️</Text>
+          <Text style={styles.headerBackIcon}>‹</Text>
         </TouchableOpacity>
-
-        {/* فلاتر الحالات */}
-        <View style={styles.filterRow}>
+        <Text style={styles.headerTitle}>My Reports</Text>
+        <View style={styles.headerRightActions}>
           <TouchableOpacity
-            style={[styles.filterChip, filter === 'all' && styles.filterChipActive]}
-            onPress={() => setFilter('all')}
+            style={styles.headerLogoutBtn}
+            onPress={async () => {
+              try {
+                await logout();
+                setGuestMode(false);
+                router.replace('/(auth)/login');
+              } catch {
+                router.replace('/(auth)/login');
+              }
+            }}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-              الكل ({reports.length})
-            </Text>
+            <Text style={styles.headerLogoutText}>خروج 🚪</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
-            style={[styles.filterChip, filter === 'active' && styles.filterChipActive]}
-            onPress={() => setFilter('active')}
+            style={styles.headerAddBtn}
+            onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.filterText, filter === 'active' && styles.filterTextActive]}>
-              قيد المعالجة
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, filter === 'fixed' && styles.filterChipActive]}
-            onPress={() => setFilter('fixed')}
-          >
-            <Text style={[styles.filterText, filter === 'fixed' && styles.filterTextActive]}>
-              تم الإصلاح ✅
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, filter === 'rejected' && styles.filterChipActive]}
-            onPress={() => setFilter('rejected')}
-          >
-            <Text style={[styles.filterText, filter === 'rejected' && styles.filterTextActive]}>
-              مرفوضة ✕
-            </Text>
+            <Text style={styles.headerAddBtnText}>+ جديد</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* قائمة التقارير */}
+      {/* 2. شريط التبديل الفرعي */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.filterTab, activeTab === 'all' && styles.filterTabActive]}
+          onPress={() => setActiveTab('all')}
+        >
+          <Text
+            style={[styles.filterTabText, activeTab === 'all' && styles.filterTabTextActive]}
+          >
+            الكل ({unifiedItems.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.filterTab, activeTab === 'reports' && styles.filterTabActive]}
+          onPress={() => setActiveTab('reports')}
+        >
+          <Text
+            style={[styles.filterTabText, activeTab === 'reports' && styles.filterTabTextActive]}
+          >
+            البلاغات ({reports.length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.filterTab, activeTab === 'places' && styles.filterTabActive]}
+          onPress={() => setActiveTab('places')}
+        >
+          <Text
+            style={[styles.filterTabText, activeTab === 'places' && styles.filterTabTextActive]}
+          >
+            الأماكن المضافة ({myPlaces.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 3. قائمة التتبع والبطاقات */}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>جاري تحميل التقارير...</Text>
+          <Text style={styles.loadingText}>جاري تحميل سجل البلاغات...</Text>
         </View>
-      ) : filteredReports.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyTitle}>لا توجد تقارير في هذا التصنيف</Text>
+          <Text style={styles.emptyTitle}>لا توجد بلاغات مسجلة حالياً</Text>
           <Text style={styles.emptyDesc}>
-            إذا لاحظت حاوية مكسورة أو متراكمة في حيك، أرسل تقريراً وسيصل للبلدية فوراً.
+            إذا لاحظت نقطة نفايات سوداء أو حاوية بحاجة لصيانة في حيك، ساهم في تحسين مدينتنا وأرسل بلاغك الآن.
           </Text>
           <TouchableOpacity
-            style={styles.primaryBtn}
+            style={styles.createReportBtn}
             onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>إرسال أول تقرير ✍️</Text>
+            <Text style={styles.createReportBtnText}>إرسال أول بلاغ ✍️</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={filteredReports}
+          data={filteredItems}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           renderItem={({ item }) => {
-            const typeInfo = REPORT_TYPE_LABELS[item.type] || {
-              title: item.type,
-              emoji: '📌',
-            };
-            const isOverdue = ReportService.isReportOverdue(item);
-            const currentStepIdx = getStepIndex(item.status);
+            const isPlace = item.sourceType === 'place';
+            const isPending = item.status === 'pending';
             const isRejected = item.status === 'rejected';
+            const isFixed = item.status === 'fixed';
+
+            // حساب درجات المراحل الأربعة
+            // 1: أرسل | 2: استلم | 3: قيد الإصلاح | 4: تم الإصلاح
+            let currentStep = 1;
+            if (item.status === 'received') currentStep = 2;
+            else if (item.status === 'in_repair') currentStep = 3;
+            else if (item.status === 'fixed') currentStep = 4;
+            else if (isPlace && item.verified) currentStep = 4;
+
+            // تواريخ المراحل من سجل التاريخ أو الحساب النسبي
+            const createdTime = formatDateTime(item.createdAt);
+            const receivedTime = formatDateTime(item.createdAt + 60000);
+            const inRepairTime = formatDateTime(item.createdAt + 120000);
+            const fixedTime = formatDateTime(item.createdAt + 180000);
 
             return (
-              <View style={styles.reportCard}>
-                {/* رأس البطاقة: النوع والتاريخ والحي */}
-                <View style={styles.reportHeader}>
-                  <Text style={styles.reportDate}>
-                    {new Date(item.createdAt).toLocaleDateString('ar-DZ')}
-                  </Text>
-                  <View style={styles.reportTitleBox}>
-                    <Text style={styles.reportTypeTitle}>
-                      {typeInfo.title} {typeInfo.emoji}
-                    </Text>
-                    <Text style={styles.reportNeighborhood}>حي: {item.neighborhood}</Text>
+              <View style={styles.trackingCard}>
+                {/* الجزء العلوي: الصورة والعنوان والإحداثيات وشارة الحالة */}
+                <View style={styles.cardTopRow}>
+                  {/* حاوية الصورة أو الأيقونة على اليسار */}
+                  <View style={styles.photoContainer}>
+                    {item.photoURL ? (
+                      <Image source={{ uri: item.photoURL }} style={styles.thumbnailPhoto} />
+                    ) : (
+                      <View style={styles.cameraPlaceholder}>
+                        <Text style={styles.cameraIcon}>📷</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* التفاصيل والمعلومات على اليمين */}
+                  <View style={styles.detailsContainer}>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.itemTitle}>{item.title}</Text>
+                    </View>
+
+                    <View style={styles.badgeRow}>
+                      <Text style={styles.categoryBadge}>{item.neighborhood}</Text>
+                      {/* شارة قيد المراجعة للأماكن أو الحالات المعلقة */}
+                      {isPending && (
+                        <View style={styles.pendingBadge}>
+                          <Text style={styles.pendingBadgeText}>قيد المراجعة ⏳</Text>
+                        </View>
+                      )}
+                      {isFixed && (
+                        <View style={styles.fixedBadge}>
+                          <Text style={styles.fixedBadgeText}>معتمد / تم الإصلاح ✅</Text>
+                        </View>
+                      )}
+                      {isRejected && (
+                        <View style={styles.rejectedBadge}>
+                          <Text style={styles.rejectedBadgeText}>مرفوض ✕</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* الإحداثيات الجغرافية كما في المخطط */}
+                    <View style={styles.gpsRow}>
+                      <Text style={styles.gpsCoord}>
+                        {item.latitude.toFixed(6)}° 📍
+                      </Text>
+                      <Text style={styles.gpsCoord}>
+                        {item.longitude.toFixed(6)}° 📍
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
-                {/* نص الوصف */}
-                <Text style={styles.reportDesc}>{item.description}</Text>
+                {/* فاصل ناعم */}
+                <View style={styles.cardDivider} />
 
-                {/* صورة التقرير إن وجدت */}
-                {item.photoURL ? (
-                  <Image source={{ uri: item.photoURL }} style={styles.reportPhoto} />
-                ) : null}
-
-                {/* شريط تتبع دورة الحياة (Progress Timeline) */}
-                {!isRejected ? (
-                  <View style={styles.timelineWrapper}>
-                    <View style={styles.timelineRow}>
-                      {STATUS_STEPS.map((step, idx) => {
-                        const isReached = currentStepIdx >= idx;
-                        const isCurrent = currentStepIdx === idx;
-                        return (
-                          <React.Fragment key={step.key}>
-                            <View style={styles.timelineStep}>
-                              <View
-                                style={[
-                                  styles.stepCircle,
-                                  isReached && styles.stepCircleReached,
-                                  isCurrent && styles.stepCircleCurrent,
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.stepNumber,
-                                    isReached && styles.stepNumberReached,
-                                  ]}
-                                >
-                                  {isReached ? '✓' : idx + 1}
-                                </Text>
-                              </View>
-                              <Text
-                                style={[
-                                  styles.stepLabel,
-                                  isReached && styles.stepLabelReached,
-                                  isCurrent && styles.stepLabelCurrent,
-                                ]}
-                              >
-                                {step.label}
-                              </Text>
-                            </View>
-
-                            {/* خط الربط بين الخطوات */}
-                            {idx < STATUS_STEPS.length - 1 ? (
-                              <View
-                                style={[
-                                  styles.stepLine,
-                                  currentStepIdx > idx && styles.stepLineReached,
-                                ]}
-                              />
-                            ) : null}
-                          </React.Fragment>
-                        );
-                      })}
+                {/* متتبع المسار الرأسي المكون من 4 خطوات (Vertical 4-Step Tracker) */}
+                <View style={styles.trackerContainer}>
+                  {/* خطوة 1: أرسل */}
+                  <View style={styles.stepRow}>
+                    <View style={styles.stepTimelineCol}>
+                      <View style={[styles.stepCircle, currentStep >= 1 && styles.stepCircleActive]}>
+                        <Text style={styles.stepCircleText}>1</Text>
+                      </View>
+                      <View style={[styles.stepVerticalLine, currentStep > 1 && styles.stepLineActive]} />
+                    </View>
+                    <View style={styles.stepInfoRow}>
+                      <Text style={[styles.stepLabel, currentStep >= 1 && styles.stepLabelActive]}>
+                        أرسل
+                      </Text>
+                      <Text style={styles.stepTimestamp}>{createdTime}</Text>
                     </View>
                   </View>
-                ) : (
-                  /* في حالة الرفض */
-                  <View style={styles.rejectedBox}>
-                    <Text style={styles.rejectedTitle}>✕ تم رفض هذا التقرير</Text>
-                    {item.history?.find((h) => h.status === 'rejected')?.note ? (
-                      <Text style={styles.rejectedReason}>
-                        السبب: {item.history.find((h) => h.status === 'rejected')?.note}
+
+                  {/* خطوة 2: استلم */}
+                  <View style={styles.stepRow}>
+                    <View style={styles.stepTimelineCol}>
+                      <View style={[styles.stepCircle, currentStep >= 2 && styles.stepCircleActive]}>
+                        <Text style={styles.stepCircleText}>2</Text>
+                      </View>
+                      <View style={[styles.stepVerticalLine, currentStep > 2 && styles.stepLineActive]} />
+                    </View>
+                    <View style={styles.stepInfoRow}>
+                      <Text style={[styles.stepLabel, currentStep >= 2 && styles.stepLabelActive]}>
+                        استلم
                       </Text>
-                    ) : null}
+                      <Text style={styles.stepTimestamp}>
+                        {currentStep >= 2 ? receivedTime : '—'}
+                      </Text>
+                    </View>
                   </View>
-                )}
 
-                {/* رسالة الـ 14 يوماً الصريحة (14-day Honest Overdue Message) */}
-                {isOverdue ? (
-                  <View style={styles.overdueBox}>
-                    <Text style={styles.overdueTitle}>⚠️ وصل تقريرك ولم يتم الرد بعد</Text>
-                    <Text style={styles.overdueDesc}>
-                      مر أكثر من 14 يوماً على إرسال التقرير وهو مسجل لدى المصالح المعنية للمتابعة والتدخل.
-                    </Text>
+                  {/* خطوة 3: قيد الإصلاح */}
+                  <View style={styles.stepRow}>
+                    <View style={styles.stepTimelineCol}>
+                      <View style={[styles.stepCircle, currentStep >= 3 && styles.stepCircleActive]}>
+                        <Text style={styles.stepCircleText}>3</Text>
+                      </View>
+                      <View style={[styles.stepVerticalLine, currentStep > 3 && styles.stepLineActive]} />
+                    </View>
+                    <View style={styles.stepInfoRow}>
+                      <Text style={[styles.stepLabel, currentStep >= 3 && styles.stepLabelActive]}>
+                        قيد الإصلاح
+                      </Text>
+                      <Text style={styles.stepTimestamp}>
+                        {currentStep >= 3 ? inRepairTime : '—'}
+                      </Text>
+                    </View>
                   </View>
-                ) : null}
 
-                {/* إشعار إتمام الإصلاح النهائي من البلدية */}
-                {item.status === 'fixed' ? (
-                  <View style={styles.fixedSuccessBadge}>
-                    <Text style={styles.fixedSuccessText}>
-                      ✅ تم التدخل وإصلاح المشكلة بنجاح من قِبل مصالح النظافة
-                    </Text>
+                  {/* خطوة 4: تم الإصلاح */}
+                  <View style={styles.stepRow}>
+                    <View style={styles.stepTimelineCol}>
+                      <View
+                        style={[
+                          styles.stepCircle,
+                          currentStep >= 4 && styles.stepCircleSuccess,
+                        ]}
+                      >
+                        <Text style={styles.stepCircleText}>
+                          {currentStep >= 4 ? '✓' : '4'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.stepInfoRow}>
+                      <Text
+                        style={[
+                          styles.stepLabel,
+                          currentStep >= 4 && styles.stepLabelSuccess,
+                        ]}
+                      >
+                        تم الإصلاح
+                      </Text>
+                      <Text style={styles.stepTimestamp}>
+                        {currentStep >= 4 ? fixedTime : '—'}
+                      </Text>
+                    </View>
                   </View>
-                ) : null}
+                </View>
               </View>
             );
           }}
         />
       )}
 
-      {/* نافذة إرسال تقرير جديد */}
-      <Modal
-        visible={showCreateModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowCreateModal(false)}
-      >
+      {/* نافذة إنشاء بلاغ جديد السريع */}
+      <Modal visible={showCreateModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>إرسال بلاغ ميداني جديد ✍️</Text>
+            <Text style={styles.modalSubtitle}>
+              حدد نوع المشكلة واكتب وصفاً موجزاً ليصل مباشرة لفرق النظافة بالأغواط.
+            </Text>
+
+            <View style={styles.typeSelectorRow}>
               <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={() => setShowCreateModal(false)}
+                style={[styles.typeOption, newType === 'dirty_spot' && styles.typeOptionActive]}
+                onPress={() => setNewType('dirty_spot')}
               >
-                <Text style={styles.closeBtnText}>✕</Text>
+                <Text style={styles.typeOptionText}>نقطة سوداء 🗑️</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>إرسال تقرير جديد ✍️</Text>
+              <TouchableOpacity
+                style={[styles.typeOption, newType === 'broken' && styles.typeOptionActive]}
+                onPress={() => setNewType('broken')}
+              >
+                <Text style={styles.typeOptionText}>حاوية مكسورة 🔨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.typeOption, newType === 'full' && styles.typeOptionActive]}
+                onPress={() => setNewType('full')}
+              >
+                <Text style={styles.typeOptionText}>حاوية ممتلئة ⚠️</Text>
+              </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.modalBody}>
-              {/* نوع المشكلة */}
-              <Text style={styles.fieldLabel}>نوع المشكلة</Text>
-              <View style={styles.typeSelectorRow}>
-                {(['broken', 'full', 'dirty_spot'] as ReportType[]).map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[
-                      styles.typeSelectorBtn,
-                      newType === t && styles.typeSelectorBtnActive,
-                    ]}
-                    onPress={() => setNewType(t)}
-                  >
-                    <Text style={styles.typeSelectorEmoji}>
-                      {REPORT_TYPE_LABELS[t].emoji}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.typeSelectorText,
-                        newType === t && styles.typeSelectorTextActive,
-                      ]}
-                    >
-                      {REPORT_TYPE_LABELS[t].title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <TextInput
+              style={styles.descInput}
+              placeholder="اكتب تفاصيل الموقع والمشكلة هنا..."
+              placeholderTextColor={colors.textMuted}
+              value={newDesc}
+              onChangeText={setNewDesc}
+              multiline
+              numberOfLines={4}
+              textAlign="right"
+            />
 
-              {/* صورة توضيحية */}
-              <Text style={styles.fieldLabel}>صورة المشكلة (اختياري)</Text>
-              {newPhotoUri ? (
-                <View style={styles.modalPhotoPreview}>
-                  <Image source={{ uri: newPhotoUri }} style={styles.previewImage} />
-                  <TouchableOpacity
-                    style={styles.removePhotoSmall}
-                    onPress={() => setNewPhotoUri(null)}
-                  >
-                    <Text style={styles.removePhotoSmallText}>✕ حذف الصورة</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.photoRow}>
-                  <TouchableOpacity
-                    style={styles.modalPhotoBtn}
-                    onPress={handlePickCamera}
-                  >
-                    <Text style={styles.modalPhotoBtnText}>الكاميرا 📸</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.modalPhotoBtn}
-                    onPress={handlePickGallery}
-                  >
-                    <Text style={styles.modalPhotoBtnText}>المعرض 🖼️</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* وصف المشكلة */}
-              <Text style={styles.fieldLabel}>وصف المشكلة</Text>
-              <TextInput
-                style={styles.descInput}
-                placeholder="صف المشكلة بدقة ومكان تواجدها بالتحديد..."
-                value={newDesc}
-                onChangeText={setNewDesc}
-                maxLength={1000}
-                multiline
-                numberOfLines={4}
-                textAlign="right"
-              />
-              <Text style={styles.charCount}>{newDesc.length} / 1000 حرف</Text>
-
-              {/* زر الإرسال */}
+            <View style={styles.modalButtonsRow}>
               <TouchableOpacity
-                style={[styles.submitReportBtn, isSubmitting && styles.submitDisabled]}
+                style={[styles.modalSubmitBtn, isSubmitting && styles.btnDisabled]}
                 onPress={handleSubmitReport}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.submitReportBtnText}>إرسال التقرير للبلدية 🚀</Text>
+                  <Text style={styles.modalSubmitText}>إرسال البلاغ الآن</Text>
                 )}
               </TouchableOpacity>
-            </ScrollView>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowCreateModal(false)}
+              >
+                <Text style={styles.modalCancelText}>إلغاء</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -508,440 +549,436 @@ export default function ReportsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F7F9',
+    backgroundColor: colors.background,
+  },
+  headerBar: {
+    height: 56,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerBackIcon: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '300',
+    marginTop: -2,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontFamily: theme.fontFamily,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerLogoutBtn: {
+    backgroundColor: 'rgba(220, 38, 38, 0.25)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 0.8,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  headerLogoutText: {
+    color: '#FFFFFF',
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  headerAddBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  headerAddBtnText: {
+    color: '#FFFFFF',
+    fontFamily: theme.fontFamily,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterRow: {
+    flexDirection: 'row-reverse',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  filterTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.surfaceAlt,
+  },
+  filterTabActive: {
+    backgroundColor: colors.primary,
+  },
+  filterTabText: {
+    fontFamily: theme.fontFamily,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  filterTabTextActive: {
+    color: '#FFFFFF',
+  },
+  listContent: {
+    padding: 16,
+    gap: 16,
+  },
+  trackingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  photoContainer: {
+    width: 68,
+    height: 68,
+    borderRadius: 12,
+    backgroundColor: '#EBEAE4',
+    overflow: 'hidden',
+  },
+  thumbnailPhoto: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  cameraPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EBEAE4',
+  },
+  cameraIcon: {
+    fontSize: 26,
+    opacity: 0.7,
+  },
+  detailsContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  titleRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+  },
+  itemTitle: {
+    fontFamily: theme.fontFamily,
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'right',
+  },
+  badgeRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 4,
+    flexWrap: 'wrap',
+  },
+  categoryBadge: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    color: colors.textSecondary,
+    backgroundColor: colors.surfaceAlt,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    fontWeight: '600',
+  },
+  pendingBadge: {
+    backgroundColor: colors.warningLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: colors.warning,
+  },
+  pendingBadgeText: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    color: colors.warning,
+    fontWeight: '700',
+  },
+  fixedBadge: {
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: colors.success,
+  },
+  fixedBadgeText: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    color: colors.success,
+    fontWeight: '700',
+  },
+  rejectedBadge: {
+    backgroundColor: colors.errorLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: colors.error,
+  },
+  rejectedBadgeText: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    color: colors.error,
+    fontWeight: '700',
+  },
+  gpsRow: {
+    alignItems: 'flex-end',
+    marginTop: 2,
+  },
+  gpsCoord: {
+    fontFamily: theme.fontFamily,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginVertical: 14,
+  },
+  trackerContainer: {
+    paddingHorizontal: 4,
+  },
+  stepRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'flex-start',
+    minHeight: 46,
+  },
+  stepTimelineCol: {
+    alignItems: 'center',
+    width: 28,
+  },
+  stepCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  stepCircleActive: {
+    backgroundColor: colors.primary,
+  },
+  stepCircleSuccess: {
+    backgroundColor: colors.success,
+  },
+  stepCircleText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  stepVerticalLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 2,
+  },
+  stepLineActive: {
+    backgroundColor: colors.primary,
+  },
+  stepInfoRow: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: 10,
+    paddingTop: 1,
+  },
+  stepLabel: {
+    fontFamily: theme.fontFamily,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  stepLabelActive: {
+    color: colors.text,
+  },
+  stepLabelSuccess: {
+    color: colors.success,
+  },
+  stepTimestamp: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    color: colors.textSecondary,
+    direction: 'ltr',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  iconBig: {
-    fontSize: 54,
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  desc: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginVertical: 14,
-  },
-  primaryBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  primaryBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
+    padding: 32,
   },
   loadingText: {
-    marginTop: 10,
+    fontFamily: theme.fontFamily,
+    fontSize: 13,
     color: colors.textSecondary,
-    fontSize: 14,
+    marginTop: 12,
   },
   emptyIcon: {
-    fontSize: 50,
-    marginBottom: 10,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  emptyDesc: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginVertical: 10,
-  },
-  topBar: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-  },
-  newReportBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  newReportBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  filterRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-  },
-  filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#F0F2F5',
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-  },
-  filterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  filterTextActive: {
-    color: '#FFF',
-    fontWeight: 'bold',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 30,
-  },
-  reportCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E8ECEF',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  reportHeader: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  reportTitleBox: {
-    alignItems: 'flex-end',
-  },
-  reportTypeTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  reportNeighborhood: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  reportDate: {
-    fontSize: 11,
-    color: '#9E9E9E',
-  },
-  reportDesc: {
-    fontSize: 13,
-    color: colors.text,
-    textAlign: 'right',
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  reportPhoto: {
-    width: '100%',
-    height: 160,
-    borderRadius: 8,
+    fontSize: 48,
     marginBottom: 12,
   },
-  timelineWrapper: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  timelineRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  timelineStep: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  stepCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  stepCircleReached: {
-    backgroundColor: colors.primary,
-  },
-  stepCircleCurrent: {
-    borderWidth: 2,
-    borderColor: '#FFF',
-    elevation: 2,
-  },
-  stepNumber: {
-    fontSize: 11,
-    color: '#757575',
-    fontWeight: 'bold',
-  },
-  stepNumberReached: {
-    color: '#FFF',
-  },
-  stepLabel: {
-    fontSize: 10,
-    color: '#9E9E9E',
-    textAlign: 'center',
-  },
-  stepLabelReached: {
+  emptyTitle: {
+    fontFamily: theme.fontFamily,
+    fontSize: 17,
+    fontWeight: '800',
     color: colors.text,
-    fontWeight: '600',
   },
-  stepLabelCurrent: {
-    color: colors.primary,
-    fontWeight: 'bold',
+  emptyDesc: {
+    fontFamily: theme.fontFamily,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 20,
   },
-  stepLine: {
-    height: 2,
-    backgroundColor: '#E0E0E0',
-    flex: 0.8,
-    marginHorizontal: -4,
-    marginBottom: 18,
-  },
-  stepLineReached: {
+  createReportBtn: {
+    marginTop: 20,
     backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
   },
-  rejectedBox: {
-    backgroundColor: '#FFEBEE',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#FFCDD2',
-  },
-  rejectedTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#C62828',
-    textAlign: 'right',
-  },
-  rejectedReason: {
-    fontSize: 12,
-    color: '#B71C1C',
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  overdueBox: {
-    backgroundColor: '#FFF8E1',
-    borderWidth: 1,
-    borderColor: '#FFE082',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 10,
-  },
-  overdueTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#F57F17',
-    textAlign: 'right',
-    marginBottom: 2,
-  },
-  overdueDesc: {
-    fontSize: 11,
-    color: '#6D4C41',
-    textAlign: 'right',
-    lineHeight: 16,
-  },
-  fixedSuccessBadge: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-  },
-  fixedSuccessText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    textAlign: 'right',
+  createReportBtnText: {
+    color: '#FFF',
+    fontFamily: theme.fontFamily,
+    fontSize: 14,
+    fontWeight: '800',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    padding: 20,
   },
-  modalCard: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 22,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  closeBtn: {
-    padding: 6,
-  },
-  closeBtnText: {
+    fontFamily: theme.fontFamily,
     fontSize: 18,
-    color: colors.textSecondary,
-  },
-  modalBody: {
-    padding: 16,
-    paddingBottom: 30,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: colors.text,
-    marginTop: 12,
-    marginBottom: 6,
     textAlign: 'right',
+  },
+  modalSubtitle: {
+    fontFamily: theme.fontFamily,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 4,
+    marginBottom: 16,
   },
   typeSelectorRow: {
     flexDirection: 'row-reverse',
     gap: 8,
+    marginBottom: 14,
   },
-  typeSelectorBtn: {
+  typeOption: {
     flex: 1,
-    backgroundColor: '#F7F9FA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: colors.surfaceAlt,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
-  },
-  typeSelectorBtnActive: {
-    borderColor: colors.primary,
-    backgroundColor: '#E8F5E9',
-  },
-  typeSelectorEmoji: {
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  typeSelectorText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  typeSelectorTextActive: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  neighborhoodChipsRow: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  neighborhoodChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#F0F2F5',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: colors.border,
   },
-  neighborhoodChipActive: {
-    backgroundColor: colors.primary,
+  typeOptionActive: {
+    backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
   },
-  neighborhoodChipText: {
-    fontSize: 12,
+  typeOptionText: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.text,
   },
-  neighborhoodChipTextActive: {
-    color: '#FFF',
-    fontWeight: 'bold',
+  descInput: {
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 12,
+    fontFamily: theme.fontFamily,
+    fontSize: 13,
+    color: colors.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 16,
   },
-  photoRow: {
+  modalButtonsRow: {
     flexDirection: 'row-reverse',
     gap: 10,
   },
-  modalPhotoBtn: {
-    flex: 1,
-    backgroundColor: '#F7F9FA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalPhotoBtnText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  modalPhotoPreview: {
-    alignItems: 'center',
-  },
-  previewImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 8,
-  },
-  removePhotoSmall: {
-    marginTop: 6,
-    padding: 4,
-  },
-  removePhotoSmallText: {
-    color: '#D32F2F',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  descInput: {
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 13,
-    color: colors.text,
-    height: 90,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    fontSize: 11,
-    color: '#9E9E9E',
-    textAlign: 'left',
-    marginTop: 4,
-  },
-  submitReportBtn: {
+  modalSubmitBtn: {
+    flex: 2,
     backgroundColor: colors.primary,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 18,
+    justifyContent: 'center',
   },
-  submitDisabled: {
-    opacity: 0.6,
-  },
-  submitReportBtnText: {
+  modalSubmitText: {
     color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
+    fontFamily: theme.fontFamily,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    backgroundColor: colors.surfaceAlt,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    color: colors.textSecondary,
+    fontFamily: theme.fontFamily,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
 });

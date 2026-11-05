@@ -2,8 +2,8 @@
  * خدمة المصادقة وإدارة الحسابات (Auth Service)
  * 
  * بالدارجة: هذا السيرفيس فيه كل الدوال تاع الحسابات: التسجيل، تسجيل الدخول،
- * الخروج، واسترجاع كلمة السر. ومع كل تسجيل جديد ننشئو وثيقة المستخدم في Firestore
- * برتبة 'citizen' وممنوع الكلاينت يتحكم في رتبته.
+ * الخروج، واسترجاع كلمة السر. ومع كل تسجيل أو دخول، نضمن وجود وثيقة المستخدم
+ * في Firestore مع قراءة role (admin / citizen) للتحكم في الصلاحيات.
  */
 
 import {
@@ -14,13 +14,15 @@ import {
   updateProfile,
   User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db } from './firebase';
 import { UserProfile, UserRole } from '../types';
 
 export class AuthService {
   /**
-   * تسجيل حساب جديد كمواطن
+   * تسجيل حساب جديد كمواطن وضمان حفظ وثيقة المستخدم في Firestore
    */
   static async register(
     email: string,
@@ -52,17 +54,27 @@ export class AuthService {
         displayName: trimmedName,
         photoURL: null,
         language: 'ar',
-        role: 'citizen', // دور المواطن هو الافتراضي دوماً
+        role: 'citizen',
         isBanned: false,
         createdAt: now,
         updatedAt: now,
       };
 
-      // حفظ وثيقة المستخدم في Firestore مع حماية المهلة لعدم تعليق الواجهة
+      // حفظ وثيقة المستخدم في Firestore
       try {
         const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 4000));
         await Promise.race([
-          setDoc(doc(db, 'users', user.uid), userProfile),
+          setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            email: user.email,
+            displayName: trimmedName,
+            photoURL: null,
+            language: 'ar',
+            role: 'citizen',
+            isBanned: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          }),
           timeoutPromise,
         ]);
       } catch (dbErr) {
@@ -77,7 +89,7 @@ export class AuthService {
   }
 
   /**
-   * تسجيل الدخول
+   * تسجيل الدخول والتحقق من وجود وثيقة المستخدم وقراءة role
    */
   static async login(email: string, password: string): Promise<FirebaseUser> {
     if (!auth) {
@@ -90,7 +102,33 @@ export class AuthService {
         email.trim(),
         password
       );
-      return userCredential.user;
+      const user = userCredential.user;
+
+      // التأكد من وجود وثيقة /users/{uid} في Firestore
+      if (db) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(userDocRef);
+
+          if (!docSnap.exists()) {
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || user.email?.split('@')[0] || 'مواطن',
+              role: 'citizen',
+              photoURL: user.photoURL || null,
+              language: 'ar',
+              isBanned: false,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+        } catch (dbErr) {
+          console.warn('تنبيه أثناء التحقق من وثيقة المستخدم عند الدخول:', dbErr);
+        }
+      }
+
+      return user;
     } catch (error: any) {
       console.error('خطأ أثناء تسجيل الدخول:', error);
       throw new Error(this.mapAuthError(error.code || error.message));
@@ -98,15 +136,25 @@ export class AuthService {
   }
 
   /**
-   * تسجيل الخروج
+   * تسجيل الخروج من الحساب وتنظيف كامل للجلسة والتخزين المحلي
    */
   static async logout(): Promise<void> {
-    if (!auth) return;
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
     } catch (error) {
-      console.error('خطأ أثناء تسجيل الخروج:', error);
-      throw error;
+      console.warn('تنبيه أثناء signOut من Firebase:', error);
+    }
+
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.localStorage?.clear?.();
+        window.sessionStorage?.clear?.();
+      }
+      await AsyncStorage.clear();
+    } catch (clearErr) {
+      console.warn('تنبيه أثناء مسح التخزين:', clearErr);
     }
   }
 
@@ -127,23 +175,43 @@ export class AuthService {
   }
 
   /**
-   * جلب وثيقة المستخدم من Firestore
+   * جلب وثيقة المستخدم من Firestore وإنشاؤها إذا لم تكن موجودة بعد
    */
   static async getUserProfile(uid: string): Promise<UserProfile | null> {
     if (!db) return null;
 
     try {
       const docRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(docRef);
+      let docSnap = await getDoc(docRef);
+
+      // إذا لم تكن الوثيقة موجودة، ننشئها برتبة citizen افتراضية
+      if (!docSnap.exists() && auth?.currentUser) {
+        const u = auth.currentUser;
+        try {
+          await setDoc(docRef, {
+            uid: u.uid,
+            email: u.email,
+            displayName: u.displayName || u.email?.split('@')[0] || 'مواطن',
+            role: 'citizen',
+            photoURL: u.photoURL || null,
+            language: 'ar',
+            isBanned: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          docSnap = await getDoc(docRef);
+        } catch (createErr) {
+          console.warn('فشل إنشاء وثيقة المستخدم عند الجلب:', createErr);
+        }
+      }
 
       if (docSnap.exists()) {
         return docSnap.data() as UserProfile;
       }
       return null;
     } catch (error: any) {
-      // إذا كانت قاعدة بيانات Firestore غير متصلة أو لم تُنشأ بعد في Console، نعتمد رتبة مواطن افتراضية
       if (error?.code === 'unavailable' || error?.message?.includes('offline')) {
-        console.warn('تنبيه: تعذر الاتصال بـ Firestore (Client is offline)، جاري استخدام رتبة مواطن افتراضية.');
+        console.warn('تنبيه: تعذر الاتصال بـ Firestore، جاري استخدام رتبة مواطن افتراضية.');
         return {
           uid,
           displayName: auth?.currentUser?.displayName || 'مواطن',
@@ -190,30 +258,21 @@ export class AuthService {
   }
 
   /**
-   * ترجمة رسائل أخطاء Firebase إلى العربية البسيطة
+   * ترجمة رسائل أخطاء Firebase إلى العربية واضحة
    */
-  private static mapAuthError(code: string): string {
-    switch (code) {
-      case 'auth/api-key-not-valid':
-        return 'مفتاح Firebase غير مفعل أو غير صالح. تأكد من تفعيل خدمة Authentication في Firebase Console.';
-      case 'auth/invalid-email':
-        return 'صيغة البريد الإلكتروني غير صحيحة.';
-      case 'auth/user-disabled':
-        return 'هذا الحساب تم تعطيله.';
-      case 'auth/user-not-found':
-        return 'البريد الإلكتروني غير موجود (The email does not exist). يرجى التأكد من الإيميل أو إنشاء حساب جديد.';
-      case 'auth/wrong-password':
-        return 'كلمة المرور غير صحيحة. يرجى التأكد من كلمة المرور أو استخدام "نسيت كلمة المرور؟".';
-      case 'auth/invalid-credential':
-        return 'البريد الإلكتروني أو كلمة المرور غير صحيحة. إذا لم تنشئ حسابك بعد، اضغط على "أنشئ حساباً جديداً" بالأسفل.';
-      case 'auth/email-already-in-use':
-        return 'هذا البريد الإلكتروني مسجل مسبقاً.';
-      case 'auth/weak-password':
-        return 'كلمة المرور ضعيفة (يجب أن تتكون من 6 أحرف على الأقل).';
-      case 'auth/too-many-requests':
-        return 'تم حظر المحاولات مؤقتاً بسبب كثرة المحاولات الخاطئة. انتظر قليلاً ثم أعد المحاولة.';
-      default:
-        return 'حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى.';
-    }
+  private static mapAuthError(codeOrMsg: string): string {
+    const errorMap: Record<string, string> = {
+      'auth/invalid-email': 'صيغة البريد الإلكتروني غير صحيحة.',
+      'auth/user-disabled': 'تم تعطيل هذا الحساب. يرجى التواصل مع الإدارة.',
+      'auth/user-not-found': 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.',
+      'auth/wrong-password': 'كلمة المرور غير صحيحة.',
+      'auth/invalid-credential': 'بيانات الدخول غير صحيحة. تحقق من البريد وكلمة المرور.',
+      'auth/email-already-in-use': 'هذا البريد الإلكتروني مسجل به حساب بالفعل.',
+      'auth/weak-password': 'كلمة المرور ضعيفة. يجب أن تتكون من 6 أحرف على الأقل.',
+      'auth/network-request-failed': 'فشل الاتصال بالشبكة. تحقق من اتصالك بالإنترنت.',
+      'auth/too-many-requests': 'تم حظر الدخول مؤقتاً لكثرة المحاولات. انتظر قليلاً.',
+    };
+
+    return errorMap[codeOrMsg] || 'حدث خطأ في المصادقة. يرجى المحاولة مرة أخرى.';
   }
 }
