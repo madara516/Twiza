@@ -50,6 +50,9 @@ export interface Place {
   schedule?: string;
   accepts?: string[];
   severity?: WildDumpSeverity;
+  confirmationsStillThere?: number;
+  confirmationsResolved?: number;
+  verifiedByCitizens?: string[];
 }
 
 export type ReportType = 'broken' | 'full' | 'dirty_spot';
@@ -73,10 +76,23 @@ export interface PlaceReport {
   location: GeoLocation;
   reporterId: string;
   reporterConfirmed: boolean | null;
+  confirmationsStillThere?: number;
+  confirmationsResolved?: number;
+  verifiedByCitizens?: string[];
   history: ReportHistoryItem[];
   createdAt: number;
   updatedAt: number;
 }
+
+export interface SystemConfig {
+  verificationThreshold: number; // default: 4
+  proximityDistanceMeters: number; // default: 15
+  updatedAt?: number;
+  updatedBy?: string;
+}
+
+export type ProximityItemCategory = 'bin' | 'wild_dump' | 'report';
+export type VerificationVote = 'still_there' | 'resolved';
 
 export interface NeedBinVote {
   id: string; // `${neighborhood}_${uid}`

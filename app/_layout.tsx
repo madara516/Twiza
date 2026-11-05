@@ -12,6 +12,8 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/context/AuthContext';
 import { setupRTL } from '../src/i18n';
 import { colors } from '../src/theme/colors';
+import { GlobalProximityWatcher } from '../src/components/GlobalProximityWatcher';
+import { ReportResolvedRecognitionModal } from '../src/components/ReportResolvedRecognitionModal';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -56,6 +58,8 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <StatusBar style="dark" />
+      <GlobalProximityWatcher />
+      <ReportResolvedRecognitionModal />
       {Platform.OS === 'web' ? (
         <View style={styles.webBackdrop}>
           <View style={styles.webPhoneContainer}>{stackContent}</View>

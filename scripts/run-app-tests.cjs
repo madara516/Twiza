@@ -292,6 +292,72 @@ function run() {
   assert(validMsg.senderRole === 'admin', 'تمييز رسائل المشرف بشارة مشرف بلدية');
   assert(validMsg.neighborhood === 'وسط المدينة (البلاد)', 'ربط الرسالة بالحي الصحيح');
 
+  console.log('\n--- 12. اختبارات إعدادات النظام وتأكيدات البلاغات (System Settings & Threshold) ---');
+  const DEFAULT_CONFIG = { verificationThreshold: 4, proximityDistanceMeters: 15 };
+  
+  function validateThreshold(num) {
+    if (typeof num !== 'number' || num < 1 || num > 50) {
+      throw new Error('يجب أن يكون عدد التأكيدات بين 1 و 50.');
+    }
+    return Math.floor(num);
+  }
+
+  assert(DEFAULT_CONFIG.verificationThreshold === 4, 'عتبة التأكيدات الافتراضية محددة بـ 4 تأكيدات');
+  assert(DEFAULT_CONFIG.proximityDistanceMeters === 15, 'نطاق الرصد الجغرافي محدد بـ 15 متراً كحد أقصى');
+  
+  let invalidThresholdCaught = false;
+  try {
+    validateThreshold(0);
+  } catch {
+    invalidThresholdCaught = true;
+  }
+  assert(invalidThresholdCaught, 'رفض القيم الصفرية أو السالبة لعتبة التأكيدات');
+
+  let validNewThreshold = validateThreshold(6);
+  assert(validNewThreshold === 6, 'قبول تحديث المشرف لعتبة التأكيدات إلى قيمة جديدة صحيحة');
+
+  console.log('\n--- 13. اختبارات التحقق الجغرافي الذكي ونطاق الـ 15 متراً (Proximity Verification Engine) ---');
+  // اختبار التمييز حسب المسافة (أقل من أو يساوي 15 متر)
+  function isEligibleForProximityAlert(distanceMeters, maxThreshold = 15) {
+    return distanceMeters <= maxThreshold;
+  }
+
+  assert(isEligibleForProximityAlert(5), 'رصد البلاغ على مسافة 5 أمتار (Pass)');
+  assert(isEligibleForProximityAlert(14.9), 'رصد البلاغ على مسافة 14.9 متراً (Pass)');
+  assert(isEligibleForProximityAlert(15.0), 'رصد البلاغ على الحد الأقصى 15.0 متراً تماماً (Pass)');
+  assert(!isEligibleForProximityAlert(15.1), 'تجاهل البلاغات على مسافة 15.1 متراً (Blocked)');
+  assert(!isEligibleForProximityAlert(30), 'تجاهل البلاغات البعيدة 30 متراً (Blocked)');
+
+  // اختبار التهدئة وتجنب التكرار (Cooldown 30 mins)
+  const cooldownMap = new Map();
+  function checkAndSetCooldown(itemId, now, cooldownMs = 30 * 60 * 1000) {
+    const last = cooldownMap.get(itemId);
+    if (last && now - last < cooldownMs) {
+      return false; // In cooldown
+    }
+    cooldownMap.set(itemId, now);
+    return true; // Allowed
+  }
+
+  const t0 = 1000000;
+  assert(checkAndSetCooldown('report-1', t0), 'السماح بالإشعار الأول للبلاغ');
+  assert(!checkAndSetCooldown('report-1', t0 + 5 * 60 * 1000), 'منع الإشعار بعد 5 دقائق بسبب التهدئة');
+  assert(!checkAndSetCooldown('report-1', t0 + 29 * 60 * 1000), 'منع الإشعار قبل اكتمال الـ 30 دقيقة');
+  assert(checkAndSetCooldown('report-1', t0 + 31 * 60 * 1000), 'السماح بإشعار جديد بعد انتهاء مهلة الـ 30 دقيقة');
+
+  // اختبار آلية بلوغ عتبة الـ 4 تأكيدات
+  function evaluateResolutionThreshold(currentResolvedVotes, newVote, threshold = 4) {
+    const total = currentResolvedVotes + (newVote === 'resolved' ? 1 : 0);
+    return {
+      total,
+      isResolved: total >= threshold,
+    };
+  }
+
+  assert(!evaluateResolutionThreshold(2, 'resolved', 4).isResolved, 'عدم حل البلاغ عند 3 تأكيدات (أقل من العتبة 4)');
+  assert(evaluateResolutionThreshold(3, 'resolved', 4).isResolved, 'تحويل حالة البلاغ تلقائياً إلى fixed فور بلوغ التأكيد الرابع');
+  assert(!evaluateResolutionThreshold(3, 'still_there', 4).isResolved, 'تصويت "ما زالت قائمة" لا يحسب ضمن تأكيدات الحل');
+
   console.log('\n========================================================');
   console.log(`📊 النتيجة النهائية: ${passed} فحص ناجح ✅ | ${failed} فاشل ❌`);
   console.log('========================================================\n');

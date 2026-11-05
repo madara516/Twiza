@@ -51,6 +51,8 @@ interface UnifiedTrackingItem {
   longitude: number;
   createdAt: number;
   status: 'pending' | 'sent' | 'received' | 'in_repair' | 'fixed' | 'rejected';
+  confirmationsResolved?: number;
+  confirmationsStillThere?: number;
   history?: any[];
   verified?: boolean;
 }
@@ -126,6 +128,8 @@ export default function ReportsScreen() {
         longitude: r.location?.longitude || ACTIVE_REGION.center.longitude,
         createdAt: r.createdAt,
         status: r.status,
+        confirmationsResolved: r.confirmationsResolved || 0,
+        confirmationsStillThere: r.confirmationsStillThere || 0,
         history: r.history,
       });
     });
@@ -371,6 +375,16 @@ export default function ReportsScreen() {
                           <Text style={styles.pendingBadgeText}>قيد المراجعة ⏳</Text>
                         </View>
                       )}
+                      {item.status === 'received' && (
+                        <View style={[styles.pendingBadge, { backgroundColor: '#EFF6FF' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: '#1D4ED8' }]}>قيد المعالجة الإدارية 📋</Text>
+                        </View>
+                      )}
+                      {item.status === 'in_repair' && (
+                        <View style={[styles.pendingBadge, { backgroundColor: '#FEF3C7' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: '#B45309' }]}>فريق التدخل في الميدان 🚜</Text>
+                        </View>
+                      )}
                       {isFixed && (
                         <View style={styles.fixedBadge}>
                           <Text style={styles.fixedBadgeText}>معتمد / تم الإصلاح ✅</Text>
@@ -379,6 +393,13 @@ export default function ReportsScreen() {
                       {isRejected && (
                         <View style={styles.rejectedBadge}>
                           <Text style={styles.rejectedBadgeText}>مرفوض ✕</Text>
+                        </View>
+                      )}
+                      {Boolean(item.confirmationsResolved && item.confirmationsResolved > 0) && (
+                        <View style={[styles.pendingBadge, { backgroundColor: '#DCFCE7' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: '#15803D' }]}>
+                            👥 {item.confirmationsResolved} تأكيدات ميدانية
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -426,7 +447,7 @@ export default function ReportsScreen() {
                     </View>
                     <View style={styles.stepInfoRow}>
                       <Text style={[styles.stepLabel, currentStep >= 2 && styles.stepLabelActive]}>
-                        استلم
+                        تم الاستلام (قيد المعالجة الإدارية)
                       </Text>
                       <Text style={styles.stepTimestamp}>
                         {currentStep >= 2 ? receivedTime : '—'}
@@ -444,7 +465,7 @@ export default function ReportsScreen() {
                     </View>
                     <View style={styles.stepInfoRow}>
                       <Text style={[styles.stepLabel, currentStep >= 3 && styles.stepLabelActive]}>
-                        قيد الإصلاح
+                        فريق التدخل في الميدان (جاري حل المشكلة)
                       </Text>
                       <Text style={styles.stepTimestamp}>
                         {currentStep >= 3 ? inRepairTime : '—'}
@@ -473,7 +494,7 @@ export default function ReportsScreen() {
                           currentStep >= 4 && styles.stepLabelSuccess,
                         ]}
                       >
-                        تم الإصلاح
+                        تم الحل وتأكيد النظافة
                       </Text>
                       <Text style={styles.stepTimestamp}>
                         {currentStep >= 4 ? fixedTime : '—'}

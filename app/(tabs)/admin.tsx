@@ -39,6 +39,7 @@ import { AdminService, AdminOverviewStats } from '../../src/services/adminServic
 import { VoteService } from '../../src/services/voteService';
 import { ReportService } from '../../src/services/reportService';
 import { CsvExportService } from '../../src/services/csvExportService';
+import { SystemSettingsService } from '../../src/services/systemSettingsService';
 import { Place, PlaceReport, ReportStatus, UserProfile } from '../../src/types';
 import { ACTIVE_REGION } from '../../src/constants/regions';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -101,6 +102,8 @@ export default function AdminScreen() {
   const [selectedReportFilter, setSelectedReportFilter] = useState<'all' | ReportStatus>('all');
   const [demandStats, setDemandStats] = useState<Record<string, number>>({});
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [threshold, setThreshold] = useState<number>(4);
+  const [isSavingThreshold, setIsSavingThreshold] = useState<boolean>(false);
 
   // تحديث التقرير وتصدير الـ CSV
   const [selectedReportForAction, setSelectedReportForAction] = useState<PlaceReport | null>(null);
@@ -108,6 +111,40 @@ export default function AdminScreen() {
   const [adminNote, setAdminNote] = useState<string>('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
   const [isExportingCsv, setIsExportingCsv] = useState<boolean>(false);
+
+  // حفظ عتبة التأكيدات من المشرف
+  const handleSaveThreshold = async (val: number) => {
+    try {
+      setIsSavingThreshold(true);
+      await SystemSettingsService.updateVerificationThreshold(val, user?.uid);
+      setThreshold(val);
+      Alert.alert('تم الحفظ بنجاح ⚙️', `تم ضبط عدد التأكيدات المطلوبة لغلق البلاغ إلى ${val} تأكيدات.`);
+    } catch (err: any) {
+      Alert.alert('خطأ', err.message || 'تعذر حفظ الإعدادات');
+    } finally {
+      setIsSavingThreshold(false);
+    }
+  };
+
+  // تحديث حالة البلاغ الميداني من طرف المشرف
+  const handleUpdateReportStatus = async (reportId: string, nextStatus: ReportStatus, noteText?: string) => {
+    try {
+      setIsUpdatingStatus(true);
+      await ReportService.updateReportStatus(reportId, user?.uid || 'admin', nextStatus, noteText);
+      Alert.alert('نجاح العملية ✅', `تم تحديث حالة البلاغ إلى "${
+        nextStatus === 'in_repair'
+          ? 'فريق التدخل في الميدان'
+          : nextStatus === 'fixed'
+          ? 'تم الحل بنجاح'
+          : 'مرفوض'
+      }".`);
+      await fetchDashboardData();
+    } catch (err: any) {
+      Alert.alert('خطأ', err.message || 'تعذر تحديث حالة البلاغ.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
 
   // تصدير تقرير البلدية
   const handleExportCsv = async () => {
@@ -141,12 +178,13 @@ export default function AdminScreen() {
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      const [overview, places, allReports, demand, users] = await Promise.all([
+      const [overview, places, allReports, demand, users, currentThreshold] = await Promise.all([
         AdminService.getOverviewStats().catch(() => stats),
         AdminService.getPendingPlaces().catch(() => []),
         AdminService.getAllReports().catch(() => []),
         VoteService.getDemandStats().catch(() => ({})),
         AdminService.getUsersList().catch(() => []),
+        SystemSettingsService.getVerificationThreshold().catch(() => 4),
       ]);
 
       setStats(overview);
@@ -154,6 +192,7 @@ export default function AdminScreen() {
       setReports(allReports);
       setDemandStats(demand);
       setUsersList(users);
+      setThreshold(currentThreshold);
     } catch (error) {
       console.warn('تنبيه أثناء جلب بيانات لوحة التحكم:', error);
       setPendingPlaces(MOCK_CITIZEN_SUBMISSIONS);
@@ -463,6 +502,48 @@ export default function AdminScreen() {
         {/* 5. تبويب البلاغات الميدانية وسجل الصيانة */}
         {activeTab === 'reports' && (
           <View style={styles.reportsSection}>
+            {/* بطاقة إعدادات التحقق الذكي والتأكيدات الميدانية */}
+            <View style={styles.thresholdSettingsCard}>
+              <View style={styles.thresholdCardHeader}>
+                <Text style={styles.thresholdTitle}>⚙️ نظام التأكيدات الميدانية (Google Maps Mode)</Text>
+              </View>
+              <Text style={styles.thresholdDesc}>
+                العدد المطلوب من تأكيدات المواطنين الميدانية (ضمن 15م) لاعتماد حل المشكلة ونظافة المكان تلقائياً:
+              </Text>
+              <View style={styles.stepperRow}>
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => setThreshold((prev) => Math.max(1, prev - 1))}
+                  disabled={isSavingThreshold}
+                >
+                  <Text style={styles.stepperBtnText}>-</Text>
+                </TouchableOpacity>
+
+                <View style={styles.stepperDisplay}>
+                  <Text style={styles.stepperValue}>{threshold}</Text>
+                  <Text style={styles.stepperLabel}>تأكيدات</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => setThreshold((prev) => Math.min(20, prev + 1))}
+                  disabled={isSavingThreshold}
+                >
+                  <Text style={styles.stepperBtnText}>+</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.saveThresholdBtn, isSavingThreshold && { opacity: 0.6 }]}
+                  onPress={() => handleSaveThreshold(threshold)}
+                  disabled={isSavingThreshold}
+                >
+                  <Text style={styles.saveThresholdBtnText}>
+                    {isSavingThreshold ? 'جاري الحفظ...' : 'حفظ التعديل 💾'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {reports.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyIcon}>🎉</Text>
@@ -472,22 +553,107 @@ export default function AdminScreen() {
                 </Text>
               </View>
             ) : (
-              reports.map((r) => (
-                <View key={r.id} style={styles.reportRowCard}>
-                  <View style={styles.reportRowHeader}>
-                    <Text style={styles.reportRowType}>
-                      {r.type === 'dirty_spot' ? 'مكب فوضوي 🔴' : 'حاوية متضررة 🔨'}
+              reports.map((r) => {
+                const isReceived = r.status === 'received' || r.status === 'sent';
+                const isInRepair = r.status === 'in_repair';
+                const isFixed = r.status === 'fixed';
+                const isRejected = r.status === 'rejected';
+
+                let statusBadgeText = 'تم الاستلام 📋';
+                let statusBadgeBg = '#EFF6FF';
+                let statusBadgeColor = '#1D4ED8';
+
+                if (isInRepair) {
+                  statusBadgeText = 'فريق التدخل في الميدان 🚜';
+                  statusBadgeBg = '#FEF3C7';
+                  statusBadgeColor = '#B45309';
+                } else if (isFixed) {
+                  statusBadgeText = 'تم الحل بنجاح ✅';
+                  statusBadgeBg = '#DCFCE7';
+                  statusBadgeColor = '#15803D';
+                } else if (isRejected) {
+                  statusBadgeText = 'مرفوض ✕';
+                  statusBadgeBg = '#FEE2E2';
+                  statusBadgeColor = '#DC2626';
+                }
+
+                return (
+                  <View key={r.id} style={styles.reportRowCard}>
+                    <View style={styles.reportRowHeader}>
+                      <Text style={styles.reportRowType}>
+                        {r.type === 'dirty_spot' ? 'مكب فوضوي 🔴' : 'حاوية متضررة 🔨'}
+                      </Text>
+                      <View style={[styles.statusBadgePill, { backgroundColor: statusBadgeBg }]}>
+                        <Text style={[styles.statusBadgePillText, { color: statusBadgeColor }]}>
+                          {statusBadgeText}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.reportRowDesc}>{r.description}</Text>
+
+                    {/* إحصائيات تأكيدات المواطنين الميدانية */}
+                    <View style={styles.confirmationStatsRow}>
+                      <Text style={styles.confirmationStatsText}>
+                        👥 تأكيدات المواطنين: {r.confirmationsResolved || 0} تم الحل | {r.confirmationsStillThere || 0} ما زالت متراكمة
+                      </Text>
+                    </View>
+
+                    <Text style={styles.reportRowMeta}>
+                      حي {r.neighborhood} | {new Date(r.createdAt).toLocaleDateString('ar-DZ')}
                     </Text>
-                    <Text style={styles.reportRowStatus}>
-                      الحالة: {r.status}
-                    </Text>
+
+                    {/* أزرار الإجراءات الإدارية المباشرة للمشرف */}
+                    {!isFixed && !isRejected && (
+                      <View style={styles.adminReportActionsRow}>
+                        {!isInRepair && (
+                          <TouchableOpacity
+                            style={styles.dispatchStaffBtn}
+                            onPress={() =>
+                              handleUpdateReportStatus(
+                                r.id,
+                                'in_repair',
+                                'تم توجيه فريق التدخل الميداني لمعالجة المشكلة.'
+                              )
+                            }
+                            disabled={isUpdatingStatus}
+                          >
+                            <Text style={styles.dispatchStaffBtnText}>إرسال فريق التدخل 🚜</Text>
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          style={styles.resolveReportBtn}
+                          onPress={() =>
+                            handleUpdateReportStatus(
+                              r.id,
+                              'fixed',
+                              'تم حل المشكلة وتأكيد نظافة المكان رسمياً.'
+                            )
+                          }
+                          disabled={isUpdatingStatus}
+                        >
+                          <Text style={styles.resolveReportBtnText}>تأكيد الحل والنظافة ✅</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.rejectReportBtn}
+                          onPress={() =>
+                            handleUpdateReportStatus(
+                              r.id,
+                              'rejected',
+                              'تم رفض البلاغ بعد المعاينة.'
+                            )
+                          }
+                          disabled={isUpdatingStatus}
+                        >
+                          <Text style={styles.rejectReportBtnText}>رفض ✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.reportRowDesc}>{r.description}</Text>
-                  <Text style={styles.reportRowMeta}>
-                    حي {r.neighborhood} | {new Date(r.createdAt).toLocaleDateString('ar-DZ')}
-                  </Text>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
         )}
@@ -934,6 +1100,155 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'right',
     marginTop: 6,
+  },
+  thresholdSettingsCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#DCFCE7',
+    marginBottom: 8,
+  },
+  thresholdCardHeader: {
+    marginBottom: 6,
+  },
+  thresholdTitle: {
+    fontFamily: theme.fontFamily,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+  thresholdDesc: {
+    fontFamily: theme.fontFamily,
+    fontSize: 11.5,
+    color: '#475569',
+    textAlign: 'right',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  stepperRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepperBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  stepperBtnText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  stepperDisplay: {
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  stepperValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.primary,
+    fontFamily: theme.fontFamily,
+  },
+  stepperLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    fontFamily: theme.fontFamily,
+  },
+  saveThresholdBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+    marginRight: 'auto',
+  },
+  saveThresholdBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  statusBadgePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  statusBadgePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  confirmationStatsRow: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginVertical: 6,
+    alignItems: 'flex-end',
+  },
+  confirmationStatsText: {
+    fontSize: 11,
+    color: '#334155',
+    fontWeight: '600',
+    fontFamily: theme.fontFamily,
+  },
+  adminReportActionsRow: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  dispatchStaffBtn: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  dispatchStaffBtnText: {
+    color: '#B45309',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  resolveReportBtn: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  resolveReportBtnText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  rejectReportBtn: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  rejectReportBtnText: {
+    color: '#DC2626',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
   demandSection: {
     backgroundColor: colors.surface,

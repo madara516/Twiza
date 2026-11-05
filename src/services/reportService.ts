@@ -109,6 +109,25 @@ export class ReportService {
   }
 
   /**
+   * جلب البلاغات الميدانية الحديثة للرصد الجغرافي الذكي
+   */
+  static async getRecentReports(limitCount: number = 50): Promise<PlaceReport[]> {
+    if (!db) return [];
+    try {
+      const reportsCol = collection(db, 'placeReports');
+      const snapshot = await getDocs(reportsCol);
+      const list = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<PlaceReport, 'id'>),
+      }));
+      return list.sort((a, b) => b.createdAt - a.createdAt).slice(0, limitCount);
+    } catch (error) {
+      console.error('خطأ في جلب البلاغات الميدانية:', error);
+      return [];
+    }
+  }
+
+  /**
    * إجابة صاحب التقرير: هل تم الإصلاح فعلاً؟ (نعم / لا)
    * مسموح بها فقط عندما تكون الحالة 'fixed'
    */
