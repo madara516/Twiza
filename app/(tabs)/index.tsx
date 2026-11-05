@@ -54,11 +54,14 @@ export default function HomeScreen() {
 
           <View style={styles.greetingContainer}>
             <Text style={styles.greetingTitle}>
-              Good morning, {userName} 👏
+              Good morning, {userName}
             </Text>
-            <Text style={styles.greetingSubtitle}>
-              Let's make Laghouat greener! 🌱
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <AppIcon name="leaf" size={13} color="#15803D" />
+              <Text style={styles.greetingSubtitle}>
+                Let's make Laghouat greener!
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -156,9 +159,15 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.eventMetaRow}>
-              <Text style={styles.eventMetaText}>👥 12 volunteers</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="people" size={13} color="#6B7280" />
+                <Text style={styles.eventMetaText}>12 volunteers</Text>
+              </View>
               <Text style={styles.eventMetaDot}>•</Text>
-              <Text style={styles.eventMetaText}>📍 Main Avenue</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="pin" size={13} color="#6B7280" />
+                <Text style={styles.eventMetaText}>Main Avenue</Text>
+              </View>
             </View>
           </View>
         </View>

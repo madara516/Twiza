@@ -1,13 +1,18 @@
 /**
- * شاشة إضافة مكان جديد وأماكني (Add Place Screen & My Places)
+ * شاشة إضافة بلاغ أو مكان جديد (Screen 4 - Add Report / Place)
  * 
- * بالدارجة: هادي الشاشة تسمح للمواطن يسجل سلة، نقطة تجميع، ولا يبلغ على نقطة سوداء.
- * يحدد موقعها عبر GPS ولا بالنقر على الخريطة، ياخذ صورة بالكاميرا ولا Galerie،
- * ويكتب ملاحظات ومواعيد الرفع ودرجة الخطورة.
- * والطلب يروح بـ verified=false حتى تراجعه البلدية، ويقدر يشوف كامل البلايص لي زادهم في تبويب "أماكني".
+ * بالدارجة: هادي الشاشة مخصصة 100% لإرسال بلاغ أو إضافة حاوية أو مكب،
+ * مطابقة للموك آب المرجعي (Screen 4):
+ * - ترويسة علوية: ‹ Add Report
+ * - بطاقة إضافة صورة (Add a photo) بالكاميرا أو المعرض
+ * - اختيار الفئة (Category: سلة نفايات، نقطة تجميع، نقطة سوداء)
+ * - الموقع الجغرافي التلقائي مع زر GPS والخريطة المصغرة
+ * - الوصف والملاحظات (Description)
+ * - زر الإرسال الأخضر (Send Report)
+ * - فور الإرسال: يتم توجيه المواطن مباشرة إلى صفحة تقاريري (/reports) لمتابعة البلاغ!
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,44 +23,40 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  Modal,
-  FlatList,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { FreeMap, FreeMapRef } from '../../src/components/FreeMap';
+import { AppIcon } from '../../src/components/AppIcon';
 import {
   ACTIVE_REGION,
   isLocationInRegion,
   OUT_OF_SERVICE_MESSAGE,
   getApproximateNeighborhood,
 } from '../../src/constants/regions';
-import { Neighborhood } from '../../src/constants/laghouat';
 import { Place, PlaceKind, GeoLocation, Severity } from '../../src/types';
 import { StorageService } from '../../src/services/storageService';
 import { PlaceService } from '../../src/services/placeService';
 
 export default function AddScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ presetLat?: string; presetLng?: string; presetTitle?: string }>();
   const { user } = useAuth();
   const mapRef = useRef<FreeMapRef>(null);
-
-  // التبويب النشط: "إضافة مكان" أو "أماكني"
-  const [activeTab, setActiveTab] = useState<'form' | 'my_places'>('form');
 
   // حقول النموذج
   const [kind, setKind] = useState<PlaceKind>('bin');
   const [location, setLocation] = useState<GeoLocation>({
-    latitude: ACTIVE_REGION.center.latitude,
-    longitude: ACTIVE_REGION.center.longitude,
+    latitude: params.presetLat ? parseFloat(params.presetLat) : ACTIVE_REGION.center.latitude,
+    longitude: params.presetLng ? parseFloat(params.presetLng) : ACTIVE_REGION.center.longitude,
   });
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(params.presetTitle ? `بخصوص: ${params.presetTitle}\n` : '');
   const [severity, setSeverity] = useState<Severity>('medium');
   const [schedule, setSchedule] = useState('');
   const [acceptsText, setAcceptsText] = useState('بلاستيك، ورق، نفايات منزلية');
@@ -63,31 +64,6 @@ export default function AddScreen() {
   // حالات التحميل
   const [isLocating, setIsLocating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // قائمة أماكني
-  const [myPlaces, setMyPlaces] = useState<Place[]>([]);
-  const [loadingMyPlaces, setLoadingMyPlaces] = useState(false);
-
-  // جلب أماكن المستخدم عند التبديل لتبويب "أماكني"
-  const loadMyPlaces = async () => {
-    if (!user) return;
-    try {
-      setLoadingMyPlaces(true);
-      const data = await PlaceService.getMyPlaces(user.uid);
-      setMyPlaces(data);
-    } catch (err) {
-      console.error('فشل في جلب أماكني:', err);
-    } finally {
-      setLoadingMyPlaces(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'my_places') {
-      loadMyPlaces();
-    }
-  }, [activeTab]);
 
   // جلب إحداثيات الـ GPS الحالية
   const handleGetCurrentLocation = async () => {
@@ -118,24 +94,25 @@ export default function AddScreen() {
 
       setLocation(coords);
       mapRef.current?.flyTo(coords.latitude, coords.longitude, 16);
-    } catch (err) {
-      console.error('خطأ في جلب الموقع:', err);
-      Alert.alert('تعذر جلب الموقع', 'تأكد من تفعيل الـ GPS أو حدد الموقع بالنقر على الخريطة.');
+    } catch (err: any) {
+      console.warn('تعذر جلب موقع GPS:', err);
     } finally {
       setIsLocating(false);
     }
   };
 
-  // النقر على الخريطة لتحديد موقع الدبوس
+  // النقر على الخريطة لتعديل الإحداثيات
   const handleMapClick = (coords: { latitude: number; longitude: number }) => {
-    if (!isLocationInRegion(coords.latitude, coords.longitude, ACTIVE_REGION)) {
-      Alert.alert('خارج النطاق', OUT_OF_SERVICE_MESSAGE);
+    const { latitude: lat, longitude: lng } = coords;
+    if (!isLocationInRegion(lat, lng, ACTIVE_REGION)) {
+      Alert.alert('تنبيه النطاق الجغرافي', OUT_OF_SERVICE_MESSAGE);
       return;
     }
     setLocation(coords);
+    mapRef.current?.flyTo(lat, lng, 16);
   };
 
-  // التقاط صورة من الكاميرا
+  // التقاط صورة بالكاميرا
   const handlePickCamera = async () => {
     try {
       const uri = await StorageService.pickFromCamera();
@@ -155,10 +132,10 @@ export default function AddScreen() {
     }
   };
 
-  // إرسال المكان الجديد
+  // إرسال البلاغ / المكان
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert('تسجيل الدخول مطلوب', 'يجب تسجيل الدخول لإضافة مكان جديد.');
+      Alert.alert('تسجيل الدخول مطلوب', 'يجب تسجيل الدخول لإرسال بلاغ أو إضافة مكان.');
       router.push('/(auth)/login');
       return;
     }
@@ -171,17 +148,15 @@ export default function AddScreen() {
     try {
       setIsSubmitting(true);
 
-      // محاولة رفع الصورة مع معالجة مرنة في حالة عدم تفعيل Storage بعد
       let uploadedPhotoURL: string | null = null;
       if (photoUri) {
         try {
           uploadedPhotoURL = await StorageService.uploadPlacePhoto(photoUri, user.uid);
         } catch (uploadErr) {
-          console.warn('تنبيه: تعذر رفع الصورة للسحابة، سيتم حفظ المكان بدونها:', uploadErr);
+          console.warn('تنبيه: تعذر رفع الصورة للسحابة، سيتم الحفظ بدونها:', uploadErr);
         }
       }
 
-      // تحضير المواد المقبولة إن كانت نقطة تجميع
       const acceptsArray =
         kind === 'collection_point' && acceptsText
           ? acceptsText.split(/[،,]+/).map((s) => s.trim()).filter(Boolean)
@@ -201,14 +176,25 @@ export default function AddScreen() {
         user.uid
       );
 
-      // إفراغ النموذج وإظهار نافذة النجاح
-      setShowSuccessModal(true);
+      // تفريغ المدخلات والتحويل الفوري إلى صفحة تقاريري لمتابعة الحالة
       setPhotoUri(null);
       setNotes('');
       setSchedule('');
+
+      Alert.alert(
+        'تم إرسال البلاغ بنجاح! 🙌',
+        'شكراً لمساهمتك في نظافة الأغواط. تم نقلك لصفحة تقاريري لمتابعة حالة التدخل والمعالجة.',
+        [
+          {
+            text: 'حسناً',
+            onPress: () => router.replace('/(tabs)/reports'),
+          },
+        ]
+      );
+      router.replace('/(tabs)/reports');
     } catch (err: any) {
-      console.error('فشل حفظ المكان:', err);
-      Alert.alert('خطأ في الإرسال', err.message || 'تعذر حفظ المكان، يرجى المحاولة لاحقاً.');
+      console.error('فشل إرسال البلاغ:', err);
+      Alert.alert('خطأ في الإرسال', err.message || 'تعذر حفظ البلاغ، يرجى المحاولة لاحقاً.');
     } finally {
       setIsSubmitting(false);
     }
@@ -219,32 +205,26 @@ export default function AddScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContainer}>
-          <Text style={styles.iconBig}>🔒</Text>
-          <Text style={styles.title}>تسجيل الدخول مطلوب للمساهمة</Text>
+          <View style={styles.lockIconCircle}>
+            <AppIcon name="shield" size={40} color={colors.primary} />
+          </View>
+          <Text style={styles.title}>تسجيل الدخول مطلوب للإبلاغ</Text>
           <Text style={styles.desc}>
             لإضافة حاوية جديدة أو نقطة تجميع أو التبليغ عن نقطة سوداء، يجب
-            تسجيل الدخول بحساب مواطن حتى تكون البيانات موثوقة ونحافظ على نظافة المدينة معاً.
+            تسجيل الدخول بحساب مواطن للحفاظ على موثوقية البلاغات ومتابعة أثرها.
           </Text>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => router.push('/(auth)/login')}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>تسجيل الدخول 🔑</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => router.push('/(auth)/register')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.secondaryBtnText}>إنشاء حساب جديد 🤝</Text>
+            <Text style={styles.primaryBtnText}>تسجيل الدخول</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // العلامة الحالية المعروضة على الخريطة
   const currentPinMarker: Place = {
     id: 'current-pin',
     kind,
@@ -260,108 +240,135 @@ export default function AddScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* شريط التبديل العلوي */}
-      <View style={styles.tabsHeader}>
+      {/* 1. الترويسة العلوية النظيفة المطابقة لـ Screen 4 */}
+      <View style={styles.headerBar}>
         <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'form' && styles.tabButtonActive]}
-          onPress={() => setActiveTab('form')}
+          style={styles.headerBackBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
         >
-          <Text
-            style={[
-              styles.tabButtonText,
-              activeTab === 'form' && styles.tabButtonTextActive,
-            ]}
-          >
-            ➕ إضافة مكان جديد
-          </Text>
+          <Text style={styles.headerBackIcon}>‹</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'my_places' && styles.tabButtonActive,
-          ]}
-          onPress={() => setActiveTab('my_places')}
-        >
-          <Text
-            style={[
-              styles.tabButtonText,
-              activeTab === 'my_places' && styles.tabButtonTextActive,
-            ]}
-          >
-            📋 أماكني المضافة ({myPlaces.length})
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Add Report</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      {activeTab === 'form' ? (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* 1. اختيار نوع المكان */}
-          <Text style={styles.sectionTitle}>1. نوع المكان 🏷️</Text>
-          <View style={styles.kindRow}>
-            <TouchableOpacity
-              style={[
-                styles.kindCard,
-                kind === 'bin' && { borderColor: colors.kind.bin, backgroundColor: '#E8F5E9' },
-              ]}
-              onPress={() => setKind('bin')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.kindEmoji}>🟢</Text>
-              <Text style={styles.kindLabel}>سلة نفايات</Text>
-            </TouchableOpacity>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 2. بطاقة إضافة الصورة المطابقة لـ Mockup Screen 4 */}
+        <View style={styles.photoUploadCard}>
+          {photoUri ? (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="cover" />
+              <TouchableOpacity
+                style={styles.removePhotoBtn}
+                onPress={() => setPhotoUri(null)}
+              >
+                <Text style={styles.removePhotoText}>✕ إزالة</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.photoPlaceholder}>
+              <View style={styles.cameraIconCircle}>
+                <AppIcon name="camera" size={32} color="#15803D" />
+              </View>
+              <Text style={styles.addPhotoTitle}>Add a photo</Text>
+              <Text style={styles.addPhotoSubtitle}>(Required / اختياري)</Text>
+              <View style={styles.photoActionsRow}>
+                <TouchableOpacity
+                  style={styles.photoActionBtn}
+                  onPress={handlePickCamera}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.photoActionText}>الكاميرا</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.photoActionBtn, styles.photoActionGallery]}
+                  onPress={handlePickGallery}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.photoActionText, styles.photoActionGalleryText]}>المعرض</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
 
-            <TouchableOpacity
-              style={[
-                styles.kindCard,
-                kind === 'collection_point' && {
-                  borderColor: colors.kind.collection_point,
-                  backgroundColor: '#E8F0FE',
-                },
-              ]}
-              onPress={() => setKind('collection_point')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.kindEmoji}>📦</Text>
-              <Text style={styles.kindLabel}>نقطة تجميع</Text>
-            </TouchableOpacity>
+        {/* 3. اختيار الفئة (Category) */}
+        <Text style={styles.fieldLabel}>Category</Text>
+        <View style={styles.kindRow}>
+          <TouchableOpacity
+            style={[
+              styles.kindCard,
+              kind === 'bin' && styles.kindCardActive,
+            ]}
+            onPress={() => setKind('bin')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="bin" size={22} color={kind === 'bin' ? colors.primary : '#64748B'} />
+            <Text style={[styles.kindLabel, kind === 'bin' && styles.kindLabelActive]}>
+              حاوية نفايات
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.kindCard,
-                kind === 'wild_dump' && {
-                  borderColor: colors.kind.wild_dump,
-                  backgroundColor: '#FFEBEE',
-                },
-              ]}
-              onPress={() => setKind('wild_dump')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.kindEmoji}>🔴</Text>
-              <Text style={styles.kindLabel}>نقطة سوداء</Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.kindCard,
+              kind === 'collection_point' && styles.kindCardActive,
+            ]}
+            onPress={() => setKind('collection_point')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="map" size={22} color={kind === 'collection_point' ? colors.primary : '#64748B'} />
+            <Text style={[styles.kindLabel, kind === 'collection_point' && styles.kindLabelActive]}>
+              نقطة تجميع
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.kindCard,
+              kind === 'wild_dump' && styles.kindCardActiveDanger,
+            ]}
+            onPress={() => setKind('wild_dump')}
+            activeOpacity={0.8}
+          >
+            <AppIcon name="reports" size={22} color={kind === 'wild_dump' ? '#DC2626' : '#64748B'} />
+            <Text style={[styles.kindLabel, kind === 'wild_dump' && styles.kindLabelActiveDanger]}>
+              نقطة سوداء
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 4. الموقع الجغرافي (Location) */}
+        <View style={styles.locationHeaderRow}>
+          <Text style={styles.fieldLabel}>Location</Text>
+          <TouchableOpacity
+            style={styles.gpsSmallBtn}
+            onPress={handleGetCurrentLocation}
+            disabled={isLocating}
+            activeOpacity={0.8}
+          >
+            {isLocating ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="gps" size={14} color={colors.primary} />
+                <Text style={styles.gpsSmallBtnText}>تحديد موقعي الحالي</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.locationCard}>
+          <View style={styles.locationInfoRow}>
+            <AppIcon name="pin" size={16} color={colors.primary} />
+            <Text style={styles.locationNeighborhoodText}>
+              حي {getApproximateNeighborhood(location.latitude, location.longitude)} (الأغواط)
+            </Text>
           </View>
-
-          {/* 2. تحديد الموقع الجغرافي */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>2. الموقع الجغرافي 📍</Text>
-            <TouchableOpacity
-              style={styles.gpsSmallBtn}
-              onPress={handleGetCurrentLocation}
-              disabled={isLocating}
-            >
-              {isLocating ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Text style={styles.gpsSmallBtnText}>موقعي الحالي 🎯</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.hintText}>
-            انقر على أي نقطة في الخريطة المصغرة لتحريك الدبوس وتحديد المكان بدقة:
-          </Text>
-
           <View style={styles.miniMapWrapper}>
             <FreeMap
               ref={mapRef}
@@ -372,241 +379,65 @@ export default function AddScreen() {
               zoom={15}
             />
           </View>
-
           <Text style={styles.coordsText}>
-            الإحداثيات: {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+            {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
           </Text>
-
-          {/* 3. حقول مخصصة حسب النوع */}
-          {kind === 'wild_dump' && (
-            <View style={styles.dynamicSection}>
-              <Text style={styles.sectionTitle}>درجة الخطورة ⚠️</Text>
-              <View style={styles.severityRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.severityBtn,
-                    severity === 'small' && { backgroundColor: '#FFF9C4', borderColor: '#FBC02D' },
-                  ]}
-                  onPress={() => setSeverity('small')}
-                >
-                  <Text style={styles.severityText}>صغيرة 🟡</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.severityBtn,
-                    severity === 'medium' && { backgroundColor: '#FFE0B2', borderColor: '#FB8C00' },
-                  ]}
-                  onPress={() => setSeverity('medium')}
-                >
-                  <Text style={styles.severityText}>متوسطة 🟠</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.severityBtn,
-                    severity === 'large' && { backgroundColor: '#FFCDD2', borderColor: '#E53935' },
-                  ]}
-                  onPress={() => setSeverity('large')}
-                >
-                  <Text style={styles.severityText}>كبيرة / حرجة 🔴</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {kind === 'collection_point' && (
-            <View style={styles.dynamicSection}>
-              <Text style={styles.sectionTitle}>مواعيد الرفع ومواد التجميع ⏰</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="أوقات الرفع (مثال: يومياً من 19:00 إلى 21:00)"
-                value={schedule}
-                onChangeText={setSchedule}
-                textAlign="right"
-              />
-              <TextInput
-                style={[styles.textInput, { marginTop: 8 }]}
-                placeholder="المواد المقبولة (مثال: بلاستيك، كرتون، زجاج)"
-                value={acceptsText}
-                onChangeText={setAcceptsText}
-                textAlign="right"
-              />
-            </View>
-          )}
-
-          {/* 3. صورة المكان */}
-          <Text style={styles.sectionTitle}>3. صورة توضيحية 📷</Text>
-          {photoUri ? (
-            <View style={styles.photoPreviewWrapper}>
-              <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-              <TouchableOpacity
-                style={styles.removePhotoBtn}
-                onPress={() => setPhotoUri(null)}
-              >
-                <Text style={styles.removePhotoText}>✕ حذف الصورة</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.photoActionsRow}>
-              <TouchableOpacity
-                style={styles.photoActionBtn}
-                onPress={handlePickCamera}
-              >
-                <Text style={styles.photoActionText}>الكاميرا 📸</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.photoActionBtn}
-                onPress={handlePickGallery}
-              >
-                <Text style={styles.photoActionText}>معرض الصور 🖼️</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* 4. ملاحظات إضافية */}
-          <Text style={styles.sectionTitle}>4. ملاحظات إضافية ✍️</Text>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            placeholder="اكتب أي تفاصيل تساعد في العثور على المكان أو وصف الحالة..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={3}
-            textAlign="right"
-          />
-
-          {/* زر الإرسال الرئيسي */}
-          <TouchableOpacity
-            style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            activeOpacity={0.85}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.submitBtnText}>إرسال المكان للتوثيق 🚀</Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      ) : (
-        /* تبويب "أماكني المضافة" */
-        <View style={styles.myPlacesContainer}>
-          {loadingMyPlaces ? (
-            <View style={styles.centerLoading}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>جاري تحميل أماكنك المضافة...</Text>
-            </View>
-          ) : myPlaces.length === 0 ? (
-            <View style={styles.emptyMyPlaces}>
-              <Text style={styles.emptyIcon}>📍</Text>
-              <Text style={styles.emptyTitle}>لم تقم بإضافة أي مكان بعد</Text>
-              <Text style={styles.emptyDesc}>
-                ساهم في تنظيف وتطوير المدينة بإضافة أول حاوية أو التبليغ عن نقطة سوداء.
-              </Text>
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={() => setActiveTab('form')}
-              >
-                <Text style={styles.primaryBtnText}>إضافة مكان جديد الآن ➕</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              data={myPlaces}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ padding: 16 }}
-              renderItem={({ item }) => (
-                <View style={styles.myPlaceCard}>
-                  <View style={styles.myPlaceCardHeader}>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        item.verified ? styles.statusBadgeVerified : styles.statusBadgePending,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusBadgeText,
-                          item.verified ? styles.statusTextVerified : styles.statusTextPending,
-                        ]}
-                      >
-                        {item.verified ? '✅ موثق ومعتمد' : '⏳ قيد المراجعة'}
-                      </Text>
-                    </View>
-                    <Text style={styles.myPlaceKind}>
-                      {item.kind === 'bin' && 'سلة 🟢'}
-                      {item.kind === 'collection_point' && 'نقطة تجميع 📦'}
-                      {item.kind === 'wild_dump' && 'نقطة سوداء 🔴'}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.myPlaceNeighborhood}>
-                    الحي: {item.neighborhood}
-                  </Text>
-
-                  {item.photoURL ? (
-                    <Image source={{ uri: item.photoURL }} style={styles.myPlacePhoto} />
-                  ) : null}
-
-                  {item.notes ? (
-                    <Text style={styles.myPlaceNotes} numberOfLines={2}>
-                      {item.notes}
-                    </Text>
-                  ) : null}
-
-                  <Text style={styles.myPlaceDate}>
-                    تاريخ الإضافة: {new Date(item.createdAt).toLocaleDateString('ar-DZ')}
-                  </Text>
-                </View>
-              )}
-            />
-          )}
         </View>
-      )}
 
-      {/* نافذة "في انتظار الموافقة والتوثيق" */}
-      <Modal
-        visible={showSuccessModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowSuccessModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.successModalCard}>
-            <Text style={styles.successIcon}>🎉</Text>
-            <Text style={styles.successTitle}>تم استلام مساهمتك بنجاح!</Text>
-            <View style={styles.statusBoxNotice}>
-              <Text style={styles.statusBoxNoticeTitle}>⏳ في انتظار مراجعة وتوثيق البلدية</Text>
-              <Text style={styles.statusBoxNoticeDesc}>
-                المكان تم حفظه برتبة "غير موثق" (Pending Verification).
-                سيقوم المشرفون بمراجعته والموافقة عليه ليصبح ظاهراً لجميع المواطنين على الخريطة العامة.
-              </Text>
+        {/* حقول إضافية للنقاط السوداء */}
+        {kind === 'wild_dump' && (
+          <View style={styles.dynamicSection}>
+            <Text style={styles.fieldLabel}>درجة الخطورة</Text>
+            <View style={styles.severityRow}>
+              <TouchableOpacity
+                style={[styles.severityBtn, severity === 'small' && styles.severityBtnActive]}
+                onPress={() => setSeverity('small')}
+              >
+                <Text style={[styles.severityText, severity === 'small' && styles.severityTextActive]}>بسيطة</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.severityBtn, severity === 'medium' && styles.severityBtnActive]}
+                onPress={() => setSeverity('medium')}
+              >
+                <Text style={[styles.severityText, severity === 'medium' && styles.severityTextActive]}>متوسطة</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.severityBtn, severity === 'large' && styles.severityBtnActiveDanger]}
+                onPress={() => setSeverity('large')}
+              >
+                <Text style={[styles.severityText, severity === 'large' && styles.severityTextActiveDanger]}>حرجة / كبيرة</Text>
+              </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.modalActionPrimary}
-              onPress={() => {
-                setShowSuccessModal(false);
-                setActiveTab('my_places');
-              }}
-            >
-              <Text style={styles.modalActionPrimaryText}>عرض أماكني المضافة 📋</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalActionSecondary}
-              onPress={() => {
-                setShowSuccessModal(false);
-                router.replace('/(tabs)');
-              }}
-            >
-              <Text style={styles.modalActionSecondaryText}>العودة إلى الخريطة 🗺️</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        )}
+
+        {/* 5. الوصف والملاحظات (Description) */}
+        <Text style={styles.fieldLabel}>Description</Text>
+        <TextInput
+          style={[styles.textInput, styles.textArea]}
+          placeholder="Add more details... (اكتب تفاصيل تساعد في الوصول أو وصف الحالة)"
+          placeholderTextColor="#9CA3AF"
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          numberOfLines={3}
+          textAlign="right"
+        />
+
+        {/* زر الإرسال الرئيسي المطابق لـ Mockup Screen 4 */}
+        <TouchableOpacity
+          style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+          activeOpacity={0.88}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>Send Report</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -614,187 +445,220 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F9FA',
+    backgroundColor: '#F8FAF8',
   },
-  centerContainer: {
-    flex: 1,
+  headerBar: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F8FAF8',
+  },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
   },
-  iconBig: {
-    fontSize: 56,
-    marginBottom: 16,
+  headerBackIcon: {
+    fontSize: 28,
+    color: '#1F2937',
+    fontWeight: '300',
   },
-  title: {
+  headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'center',
+    fontWeight: '800',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
   },
-  desc: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginVertical: 14,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 95,
   },
-  primaryBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    width: '100%',
+  photoUploadCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    minHeight: 180,
+  },
+  photoPlaceholder: {
+    alignItems: 'center',
+  },
+  cameraIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#EAF4ED',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
-  primaryBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
+  addPhotoTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
   },
-  secondaryBtn: {
-    backgroundColor: '#FFF',
+  addPhotoSubtitle: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+    fontFamily: theme.fontFamily,
+  },
+  photoActionsRow: {
+    flexDirection: 'row-reverse',
+    gap: 12,
+    marginTop: 14,
+  },
+  photoActionBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  photoActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
+  },
+  photoActionGallery: {
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    borderColor: '#D1D5DB',
+  },
+  photoActionGalleryText: {
+    color: '#374151',
+  },
+  previewContainer: {
     width: '100%',
     alignItems: 'center',
   },
-  secondaryBtnText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 15,
+  previewImage: {
+    width: '100%',
+    height: 190,
+    borderRadius: 14,
   },
-  tabsHeader: {
-    flexDirection: 'row-reverse',
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+  removePhotoBtn: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 8,
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+  removePhotoText: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
-  tabButtonActive: {
-    borderBottomColor: colors.primary,
-  },
-  tabButtonText: {
+  fieldLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  tabButtonTextActive: {
-    color: colors.primary,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontWeight: '700',
+    color: '#374151',
+    fontFamily: theme.fontFamily,
     marginBottom: 8,
-    marginTop: 14,
-    textAlign: 'right',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 14,
+    textAlign: 'left',
   },
   kindRow: {
     flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
+    marginBottom: 20,
   },
   kindCard: {
     flex: 1,
-    backgroundColor: '#FFF',
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    gap: 6,
   },
-  kindEmoji: {
-    fontSize: 24,
-    marginBottom: 6,
+  kindCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#EAF4ED',
+  },
+  kindCardActiveDanger: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEE2E2',
   },
   kindLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: theme.fontFamily,
+  },
+  kindLabelActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  kindLabelActiveDanger: {
+    color: '#DC2626',
+    fontWeight: '700',
+  },
+  locationHeaderRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   gpsSmallBtn: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: '#EAF4ED',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D7E9DC',
   },
   gpsSmallBtnText: {
+    fontSize: 11,
     color: colors.primary,
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
-  hintText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    textAlign: 'right',
+  locationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginBottom: 20,
+  },
+  locationInfoRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  locationNeighborhoodText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
   },
   miniMapWrapper: {
-    height: 180,
+    height: 150,
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginBottom: 6,
   },
   coordsText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
-  neighborhoodRow: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  neighborhoodChip: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  neighborhoodChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  neighborhoodChipText: {
-    fontSize: 13,
-    color: colors.text,
-  },
-  neighborhoodChipTextActive: {
-    color: '#FFF',
-    fontWeight: 'bold',
+    fontSize: 10,
+    color: '#9CA3AF',
+    textAlign: 'left',
+    marginTop: 6,
+    fontFamily: theme.fontFamily,
   },
   dynamicSection: {
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    marginBottom: 20,
   },
   severityRow: {
     flexDirection: 'row-reverse',
@@ -802,256 +666,112 @@ const styles = StyleSheet.create({
   },
   severityBtn: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingVertical: 8,
-    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  severityBtnActive: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  severityBtnActiveDanger: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
   },
   severityText: {
-    fontSize: 13,
+    fontSize: 11.5,
+    color: '#4B5563',
     fontWeight: '600',
+    fontFamily: theme.fontFamily,
   },
-  photoActionsRow: {
-    flexDirection: 'row-reverse',
-    gap: 12,
+  severityTextActive: {
+    color: '#B45309',
+    fontWeight: '700',
   },
-  photoActionBtn: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  photoActionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  photoPreviewWrapper: {
-    alignItems: 'center',
-  },
-  photoPreview: {
-    width: '100%',
-    height: 180,
-    borderRadius: 10,
-  },
-  removePhotoBtn: {
-    marginTop: 8,
-    padding: 6,
-  },
-  removePhotoText: {
-    color: '#D32F2F',
-    fontWeight: 'bold',
-    fontSize: 13,
+  severityTextActiveDanger: {
+    color: '#DC2626',
+    fontWeight: '700',
   },
   textInput: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#D0D0D0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.text,
+    borderColor: '#E5E7EB',
+    padding: 14,
+    fontSize: 13.5,
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
+    marginBottom: 24,
   },
   textArea: {
-    height: 75,
+    height: 90,
     textAlignVertical: 'top',
   },
   submitBtn: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: '#23703F', // أخضر الموك آب الغابي
+    borderRadius: 16,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 24,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 2 },
+    justifyContent: 'center',
+    shadowColor: '#23703F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitBtnDisabled: {
     opacity: 0.6,
   },
   submitBtnText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontFamily: theme.fontFamily,
   },
-  myPlacesContainer: {
-    flex: 1,
-  },
-  centerLoading: {
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  emptyMyPlaces: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  emptyDesc: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginVertical: 12,
-  },
-  myPlaceCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  myPlaceCardHeader: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  myPlaceKind: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusBadgePending: {
-    backgroundColor: '#FFF3E0',
-  },
-  statusBadgeVerified: {
-    backgroundColor: '#E8F5E9',
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  statusTextPending: {
-    color: '#E65100',
-  },
-  statusTextVerified: {
-    color: '#2E7D32',
-  },
-  myPlaceNeighborhood: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'right',
-  },
-  myPlacePhoto: {
-    width: '100%',
-    height: 150,
-    borderRadius: 8,
-    marginVertical: 8,
-    backgroundColor: '#EEEEEE',
-  },
-  myPlaceNotes: {
-    fontSize: 13,
-    color: colors.text,
-    textAlign: 'right',
-    marginTop: 6,
-  },
-  myPlaceDate: {
-    fontSize: 11,
-    color: '#9E9E9E',
-    textAlign: 'right',
-    marginTop: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  successModalCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
     padding: 24,
-    width: '100%',
-    maxWidth: 380,
+  },
+  lockIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EAF4ED',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 16,
   },
-  successIcon: {
-    fontSize: 52,
-    marginBottom: 10,
-  },
-  successTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+    fontFamily: theme.fontFamily,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  statusBoxNotice: {
-    backgroundColor: '#FFF8E1',
-    borderWidth: 1,
-    borderColor: '#FFE082',
-    borderRadius: 10,
-    padding: 12,
-    marginVertical: 16,
-    width: '100%',
+  desc: {
+    fontSize: 13.5,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    fontFamily: theme.fontFamily,
+    marginBottom: 24,
   },
-  statusBoxNoticeTitle: {
+  primaryBtn: {
+    backgroundColor: '#23703F',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#F57F17',
-    textAlign: 'right',
-    marginBottom: 4,
-  },
-  statusBoxNoticeDesc: {
-    fontSize: 12,
-    color: '#5D4037',
-    textAlign: 'right',
-    lineHeight: 18,
-  },
-  modalActionPrimary: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalActionPrimaryText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  modalActionSecondary: {
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  modalActionSecondaryText: {
-    color: colors.text,
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '700',
+    fontFamily: theme.fontFamily,
   },
 });

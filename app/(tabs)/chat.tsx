@@ -32,6 +32,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { ACTIVE_REGION, getApproximateNeighborhood } from '../../src/constants/regions';
 import { ChatService } from '../../src/services/chatService';
 import { ChatMessage } from '../../src/types';
+import { AppIcon } from '../../src/components/AppIcon';
 
 const STORAGE_PINNED_KEY = '@twizza_chat_is_pinned';
 const STORAGE_PINNED_ROOM_KEY = '@twizza_chat_pinned_neighborhood';
@@ -263,14 +264,24 @@ export default function ChatScreen() {
             onPress={handleTogglePin}
             activeOpacity={0.85}
           >
-            <Text style={[styles.pinToggleBtnText, isPinned ? styles.pinToggleTextPinned : styles.pinToggleTextAuto]}>
-              {isPinned ? '📌 مثبت' : '📍 تلقائي (GPS)'}
-            </Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+              <AppIcon
+                name={isPinned ? 'pin' : 'gps'}
+                size={12}
+                color={isPinned ? '#B45309' : '#15803D'}
+              />
+              <Text style={[styles.pinToggleBtnText, isPinned ? styles.pinToggleTextPinned : styles.pinToggleTextAuto]}>
+                {isPinned ? 'مثبت' : 'تلقائي (GPS)'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* عنوان الشاشة الصريح */}
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>شات الحومة 💬</Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+              <AppIcon name="chat" size={18} color="#FFFFFF" />
+              <Text style={styles.headerTitle}>شات الحومة</Text>
+            </View>
           </View>
         </View>
 
@@ -283,20 +294,26 @@ export default function ChatScreen() {
                 onPress={handleTogglePin}
                 activeOpacity={0.8}
               >
-                <Text style={styles.unpinInlineBtnText}>فك التثبيت 🔄</Text>
+                <Text style={styles.unpinInlineBtnText}>فك التثبيت</Text>
               </TouchableOpacity>
-              <Text style={styles.statusBarPinnedText}>
-                📌 الشات مثبت على: {currentNeighborhood}
-              </Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                <AppIcon name="pin" size={13} color="#B45309" />
+                <Text style={styles.statusBarPinnedText}>
+                  الشات مثبت على: {currentNeighborhood}
+                </Text>
+              </View>
             </View>
           ) : (
             <View style={styles.statusBarAutoRow}>
               {isDetectingLocation ? (
                 <ActivityIndicator size="small" color="#15803D" style={{ marginLeft: 6 }} />
               ) : null}
-              <Text style={styles.statusBarAutoText}>
-                📍 أنت الآن متصل بشات حومتك الحالية: {currentNeighborhood}
-              </Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                <AppIcon name="pin" size={13} color="#15803D" />
+                <Text style={styles.statusBarAutoText}>
+                  أنت الآن متصل بشات حومتك الحالية: {currentNeighborhood}
+                </Text>
+              </View>
             </View>
           )}
         </View>

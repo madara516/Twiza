@@ -12,6 +12,7 @@ export type IconName =
   | 'home'
   | 'reports'
   | 'plus'
+  | 'add'
   | 'chat'
   | 'map'
   | 'camera'
@@ -29,6 +30,7 @@ export type IconName =
   | 'check'
   | 'chevron_right'
   | 'volunteer'
+  | 'people'
   | 'leaf'
   | 'heart';
 
@@ -133,6 +135,7 @@ function renderSvgPaths(name: IconName, color: string, focused: boolean) {
         </>
       );
 
+    case 'add':
     case 'plus':
       return (
         <>
@@ -274,6 +277,7 @@ function renderSvgPaths(name: IconName, color: string, focused: boolean) {
     case 'chevron_right':
       return <polyline points="9 18 15 12 9 6" strokeWidth="2" />;
 
+    case 'people':
     case 'volunteer':
       return (
         <>

@@ -28,6 +28,7 @@ import { colors } from '../../src/theme/colors';
 import { AuthService } from '../../src/services/authService';
 import { useAuth } from '../../src/context/AuthContext';
 import { MailIcon, LockIcon } from '../../src/components/Icons';
+import { AppIcon } from '../../src/components/AppIcon';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -68,10 +69,10 @@ export default function LoginScreen() {
     }
   };
 
-  // الزر السريع: "أقرب سلة ليا" ينقل مباشرة للخريطة كضيف
+  // الزر السريع: "أقرب سلة ليا" ينقل مباشرة للخريطة بدون تسجيل دخول
   const handleNearestBin = () => {
     setGuestMode(true);
-    router.replace('/(tabs)');
+    router.replace('/(tabs)/map');
   };
 
   return (
@@ -178,13 +179,16 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            {/* الزر السريع: "أقرب سلة ليا" */}
+            {/* الزر السريع: "أقرب سلة ليا" ينقل للخريطة مباشرة بدون تسجيل */}
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleNearestBin}
               activeOpacity={0.85}
             >
-              <Text style={styles.secondaryButtonText}>أقرب سلة ليا</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <AppIcon name="bin" size={17} color={colors.primary} />
+                <Text style={styles.secondaryButtonText}>البحث عن أقرب سلة (بدون تسجيل)</Text>
+              </View>
             </TouchableOpacity>
 
             {/* تبديل بين تسجيل الدخول وإنشاء حساب */}

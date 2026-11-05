@@ -38,6 +38,7 @@ import { ReportService } from '../../src/services/reportService';
 import { PlaceService } from '../../src/services/placeService';
 import { StorageService } from '../../src/services/storageService';
 import { ACTIVE_REGION } from '../../src/constants/regions';
+import { AppIcon } from '../../src/components/AppIcon';
 
 interface UnifiedTrackingItem {
   id: string;
@@ -236,26 +237,11 @@ export default function ReportsScreen() {
         <Text style={styles.headerTitle}>My Reports</Text>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
-            style={styles.headerLogoutBtn}
-            onPress={async () => {
-              try {
-                await logout();
-                setGuestMode(false);
-                router.replace('/(auth)/login');
-              } catch {
-                router.replace('/(auth)/login');
-              }
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.headerLogoutText}>خروج 🚪</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
             style={styles.headerAddBtn}
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => router.push('/(tabs)/add')}
             activeOpacity={0.8}
           >
-            <Text style={styles.headerAddBtnText}>+ جديد</Text>
+            <AppIcon name="add" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -356,7 +342,7 @@ export default function ReportsScreen() {
                       <Image source={{ uri: item.photoURL }} style={styles.thumbnailPhoto} />
                     ) : (
                       <View style={styles.cameraPlaceholder}>
-                        <Text style={styles.cameraIcon}>📷</Text>
+                        <AppIcon name="camera" size={24} color="#9CA3AF" />
                       </View>
                     )}
                   </View>
@@ -372,33 +358,33 @@ export default function ReportsScreen() {
                       {/* شارة قيد المراجعة للأماكن أو الحالات المعلقة */}
                       {isPending && (
                         <View style={styles.pendingBadge}>
-                          <Text style={styles.pendingBadgeText}>قيد المراجعة ⏳</Text>
+                          <Text style={styles.pendingBadgeText}>قيد المراجعة</Text>
                         </View>
                       )}
                       {item.status === 'received' && (
                         <View style={[styles.pendingBadge, { backgroundColor: '#EFF6FF' }]}>
-                          <Text style={[styles.pendingBadgeText, { color: '#1D4ED8' }]}>قيد المعالجة الإدارية 📋</Text>
+                          <Text style={[styles.pendingBadgeText, { color: '#1D4ED8' }]}>قيد المعالجة الإدارية</Text>
                         </View>
                       )}
                       {item.status === 'in_repair' && (
                         <View style={[styles.pendingBadge, { backgroundColor: '#FEF3C7' }]}>
-                          <Text style={[styles.pendingBadgeText, { color: '#B45309' }]}>فريق التدخل في الميدان 🚜</Text>
+                          <Text style={[styles.pendingBadgeText, { color: '#B45309' }]}>فريق التدخل في الميدان</Text>
                         </View>
                       )}
                       {isFixed && (
                         <View style={styles.fixedBadge}>
-                          <Text style={styles.fixedBadgeText}>معتمد / تم الإصلاح ✅</Text>
+                          <Text style={styles.fixedBadgeText}>معتمد / تم الإصلاح</Text>
                         </View>
                       )}
                       {isRejected && (
                         <View style={styles.rejectedBadge}>
-                          <Text style={styles.rejectedBadgeText}>مرفوض ✕</Text>
+                          <Text style={styles.rejectedBadgeText}>مرفوض</Text>
                         </View>
                       )}
                       {Boolean(item.confirmationsResolved && item.confirmationsResolved > 0) && (
                         <View style={[styles.pendingBadge, { backgroundColor: '#DCFCE7' }]}>
                           <Text style={[styles.pendingBadgeText, { color: '#15803D' }]}>
-                            👥 {item.confirmationsResolved} تأكيدات ميدانية
+                            {item.confirmationsResolved} تأكيدات ميدانية
                           </Text>
                         </View>
                       )}
@@ -406,12 +392,18 @@ export default function ReportsScreen() {
 
                     {/* الإحداثيات الجغرافية كما في المخطط */}
                     <View style={styles.gpsRow}>
-                      <Text style={styles.gpsCoord}>
-                        {item.latitude.toFixed(6)}° 📍
-                      </Text>
-                      <Text style={styles.gpsCoord}>
-                        {item.longitude.toFixed(6)}° 📍
-                      </Text>
+                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
+                        <AppIcon name="pin" size={11} color="#6B7280" />
+                        <Text style={styles.gpsCoord}>
+                          {item.latitude.toFixed(6)}°
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
+                        <AppIcon name="pin" size={11} color="#6B7280" />
+                        <Text style={styles.gpsCoord}>
+                          {item.longitude.toFixed(6)}°
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
