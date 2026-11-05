@@ -40,6 +40,7 @@ import { VoteService } from '../../src/services/voteService';
 import { ReportService } from '../../src/services/reportService';
 import { CsvExportService } from '../../src/services/csvExportService';
 import { SystemSettingsService } from '../../src/services/systemSettingsService';
+import { AppIcon } from '../../src/components/AppIcon';
 import { Place, PlaceReport, ReportStatus, UserProfile } from '../../src/types';
 import { ACTIVE_REGION } from '../../src/constants/regions';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -276,7 +277,7 @@ export default function AdminScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.deniedContainer}>
-          <Text style={styles.deniedIcon}>🔒</Text>
+          <AppIcon name="shield" size={48} color="#DC2626" />
           <Text style={styles.deniedTitle}>لوحة تحكم المشرف والبلدية</Text>
           <Text style={styles.deniedMessage}>
             هذا القسم مخصص حصرياً للمشرفين وممثلي بلدية الأغواط المعتمدين لمتابعة التقارير وإدارة البيانات.
@@ -305,7 +306,7 @@ export default function AdminScreen() {
             onPress={() => setShowAdminMenu(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.menuIconText}>☰</Text>
+            <AppIcon name="settings" size={18} color="#15803D" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -321,7 +322,10 @@ export default function AdminScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.directLogoutText}>خروج 🚪</Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+              <AppIcon name="logout" size={14} color="#DC2626" />
+              <Text style={styles.directLogoutText}>خروج</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -346,7 +350,7 @@ export default function AdminScreen() {
           ) : (
             <View style={styles.exportBtnContent}>
               <Text style={styles.exportReportText}>تحميل تقرير البلدية</Text>
-              <Text style={styles.exportReportIcon}>📥</Text>
+              <AppIcon name="reports" size={16} color="#FFFFFF" />
             </View>
           )}
         </TouchableOpacity>
@@ -448,7 +452,7 @@ export default function AdminScreen() {
                         <Image source={{ uri: item.photoURL }} style={styles.citizenThumbnail} />
                       ) : (
                         <View style={styles.citizenThumbnailPlaceholder}>
-                          <Text style={{ fontSize: 24 }}>🗑️</Text>
+                          <AppIcon name="bin" size={24} color="#15803D" />
                         </View>
                       )}
                     </View>
@@ -466,11 +470,20 @@ export default function AdminScreen() {
 
                       {/* الإحداثيات والحي كما في النموذج المرجعي */}
                       <View style={styles.metaBadgeBox}>
-                        <Text style={styles.metaCoordText}>{latStr} GPS 📍</Text>
-                        <Text style={styles.metaCoordText}>{lngStr} 📍</Text>
-                        <Text style={styles.metaNeighborhoodText}>
-                          📌 {item.neighborhood}
-                        </Text>
+                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
+                          <AppIcon name="pin" size={11} color={colors.textSecondary} />
+                          <Text style={styles.metaCoordText}>{latStr} GPS</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
+                          <AppIcon name="pin" size={11} color={colors.textSecondary} />
+                          <Text style={styles.metaCoordText}>{lngStr}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                          <AppIcon name="pin" size={11} color={colors.primary} />
+                          <Text style={styles.metaNeighborhoodText}>
+                            {item.neighborhood}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -505,7 +518,10 @@ export default function AdminScreen() {
             {/* بطاقة إعدادات التحقق الذكي والتأكيدات الميدانية */}
             <View style={styles.thresholdSettingsCard}>
               <View style={styles.thresholdCardHeader}>
-                <Text style={styles.thresholdTitle}>⚙️ نظام التأكيدات الميدانية (Google Maps Mode)</Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                  <AppIcon name="settings" size={16} color="#15803D" />
+                  <Text style={styles.thresholdTitle}>نظام التأكيدات الميدانية (Google Maps Mode)</Text>
+                </View>
               </View>
               <Text style={styles.thresholdDesc}>
                 العدد المطلوب من تأكيدات المواطنين الميدانية (ضمن 15م) لاعتماد حل المشكلة ونظافة المكان تلقائياً:
@@ -538,7 +554,7 @@ export default function AdminScreen() {
                   disabled={isSavingThreshold}
                 >
                   <Text style={styles.saveThresholdBtnText}>
-                    {isSavingThreshold ? 'جاري الحفظ...' : 'حفظ التعديل 💾'}
+                    {isSavingThreshold ? 'جاري الحفظ...' : 'حفظ التعديل'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -546,7 +562,7 @@ export default function AdminScreen() {
 
             {reports.length === 0 ? (
               <View style={styles.emptyCard}>
-                <Text style={styles.emptyIcon}>🎉</Text>
+                <AppIcon name="check" size={32} color="#15803D" />
                 <Text style={styles.emptyTitle}>لا توجد بلاغات ميدانية مفتوحة</Text>
                 <Text style={styles.emptyDesc}>
                   كافة التقارير الميدانية تمت معالجتها وإصلاحها بنجاح.
@@ -559,20 +575,20 @@ export default function AdminScreen() {
                 const isFixed = r.status === 'fixed';
                 const isRejected = r.status === 'rejected';
 
-                let statusBadgeText = 'تم الاستلام 📋';
+                let statusBadgeText = 'تم الاستلام';
                 let statusBadgeBg = '#EFF6FF';
                 let statusBadgeColor = '#1D4ED8';
 
                 if (isInRepair) {
-                  statusBadgeText = 'فريق التدخل في الميدان 🚜';
+                  statusBadgeText = 'فريق التدخل في الميدان';
                   statusBadgeBg = '#FEF3C7';
                   statusBadgeColor = '#B45309';
                 } else if (isFixed) {
-                  statusBadgeText = 'تم الحل بنجاح ✅';
+                  statusBadgeText = 'تم الحل بنجاح';
                   statusBadgeBg = '#DCFCE7';
                   statusBadgeColor = '#15803D';
                 } else if (isRejected) {
-                  statusBadgeText = 'مرفوض ✕';
+                  statusBadgeText = 'مرفوض';
                   statusBadgeBg = '#FEE2E2';
                   statusBadgeColor = '#DC2626';
                 }
@@ -581,7 +597,7 @@ export default function AdminScreen() {
                   <View key={r.id} style={styles.reportRowCard}>
                     <View style={styles.reportRowHeader}>
                       <Text style={styles.reportRowType}>
-                        {r.type === 'dirty_spot' ? 'مكب فوضوي 🔴' : 'حاوية متضررة 🔨'}
+                        {r.type === 'dirty_spot' ? 'مكب فوضوي' : 'حاوية متضررة'}
                       </Text>
                       <View style={[styles.statusBadgePill, { backgroundColor: statusBadgeBg }]}>
                         <Text style={[styles.statusBadgePillText, { color: statusBadgeColor }]}>
@@ -595,7 +611,7 @@ export default function AdminScreen() {
                     {/* إحصائيات تأكيدات المواطنين الميدانية */}
                     <View style={styles.confirmationStatsRow}>
                       <Text style={styles.confirmationStatsText}>
-                        👥 تأكيدات المواطنين: {r.confirmationsResolved || 0} تم الحل | {r.confirmationsStillThere || 0} ما زالت متراكمة
+                        تأكيدات المواطنين: {r.confirmationsResolved || 0} تم الحل | {r.confirmationsStillThere || 0} ما زالت متراكمة
                       </Text>
                     </View>
 
@@ -618,7 +634,7 @@ export default function AdminScreen() {
                             }
                             disabled={isUpdatingStatus}
                           >
-                            <Text style={styles.dispatchStaffBtnText}>إرسال فريق التدخل 🚜</Text>
+                            <Text style={styles.dispatchStaffBtnText}>إرسال فريق التدخل</Text>
                           </TouchableOpacity>
                         )}
 
@@ -633,7 +649,7 @@ export default function AdminScreen() {
                           }
                           disabled={isUpdatingStatus}
                         >
-                          <Text style={styles.resolveReportBtnText}>تأكيد الحل والنظافة ✅</Text>
+                          <Text style={styles.resolveReportBtnText}>تأكيد الحل والنظافة</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -647,7 +663,7 @@ export default function AdminScreen() {
                           }
                           disabled={isUpdatingStatus}
                         >
-                          <Text style={styles.rejectReportBtnText}>رفض ✕</Text>
+                          <Text style={styles.rejectReportBtnText}>رفض</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -675,7 +691,7 @@ export default function AdminScreen() {
                   <View key={hood} style={styles.demandRow}>
                     <Text style={styles.demandHood}>{hood}</Text>
                     <View style={styles.demandBadge}>
-                      <Text style={styles.demandVotesText}>{votes} صوت 🗳️</Text>
+                      <Text style={styles.demandVotesText}>{votes} صوت</Text>
                     </View>
                   </View>
                 ))
@@ -692,7 +708,10 @@ export default function AdminScreen() {
           onPress={() => setShowAdminMenu(false)}
         >
           <View style={styles.menuCard}>
-            <Text style={styles.menuHeaderTitle}>قائمة المشرف 🛡️</Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <AppIcon name="shield" size={18} color="#15803D" />
+              <Text style={styles.menuHeaderTitle}>قائمة المشرف</Text>
+            </View>
             
             <TouchableOpacity
               style={styles.menuItem}
@@ -701,7 +720,10 @@ export default function AdminScreen() {
                 fetchDashboardData();
               }}
             >
-              <Text style={styles.menuItemText}>تحديث البيانات 🔄</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                <AppIcon name="compass" size={16} color="#15803D" />
+                <Text style={styles.menuItemText}>تحديث البيانات</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -711,7 +733,10 @@ export default function AdminScreen() {
                 router.replace('/(tabs)');
               }}
             >
-              <Text style={styles.menuItemText}>العودة للخريطة 🗺️</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                <AppIcon name="map" size={16} color="#15803D" />
+                <Text style={styles.menuItemText}>العودة للخريطة</Text>
+              </View>
             </TouchableOpacity>
 
             <View style={styles.menuDivider} />
@@ -728,7 +753,10 @@ export default function AdminScreen() {
                 }
               }}
             >
-              <Text style={styles.menuItemLogoutText}>تسجيل الخروج 🚪</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8 }}>
+                <AppIcon name="logout" size={16} color="#DC2626" />
+                <Text style={styles.menuItemLogoutText}>تسجيل الخروج</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

@@ -293,17 +293,17 @@ export default function ReportsScreen() {
         </View>
       ) : filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.emptyIcon}>📋</Text>
+          <AppIcon name="reports" size={40} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>لا توجد بلاغات مسجلة حالياً</Text>
           <Text style={styles.emptyDesc}>
             إذا لاحظت نقطة نفايات سوداء أو حاوية بحاجة لصيانة في حيك، ساهم في تحسين مدينتنا وأرسل بلاغك الآن.
           </Text>
           <TouchableOpacity
             style={styles.createReportBtn}
-            onPress={() => setShowCreateModal(true)}
+            onPress={() => router.push('/(tabs)/add')}
             activeOpacity={0.85}
           >
-            <Text style={styles.createReportBtnText}>إرسال أول بلاغ ✍️</Text>
+            <Text style={styles.createReportBtnText}>إرسال أول بلاغ</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -504,7 +504,7 @@ export default function ReportsScreen() {
       <Modal visible={showCreateModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>إرسال بلاغ ميداني جديد ✍️</Text>
+            <Text style={styles.modalTitle}>إرسال بلاغ ميداني جديد</Text>
             <Text style={styles.modalSubtitle}>
               حدد نوع المشكلة واكتب وصفاً موجزاً ليصل مباشرة لفرق النظافة بالأغواط.
             </Text>
@@ -514,19 +514,19 @@ export default function ReportsScreen() {
                 style={[styles.typeOption, newType === 'dirty_spot' && styles.typeOptionActive]}
                 onPress={() => setNewType('dirty_spot')}
               >
-                <Text style={styles.typeOptionText}>نقطة سوداء 🗑️</Text>
+                <Text style={styles.typeOptionText}>نقطة سوداء</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.typeOption, newType === 'broken' && styles.typeOptionActive]}
                 onPress={() => setNewType('broken')}
               >
-                <Text style={styles.typeOptionText}>حاوية مكسورة 🔨</Text>
+                <Text style={styles.typeOptionText}>حاوية مكسورة</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.typeOption, newType === 'full' && styles.typeOptionActive]}
                 onPress={() => setNewType('full')}
               >
-                <Text style={styles.typeOptionText}>حاوية ممتلئة ⚠️</Text>
+                <Text style={styles.typeOptionText}>حاوية ممتلئة</Text>
               </TouchableOpacity>
             </View>
 

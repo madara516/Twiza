@@ -617,7 +617,10 @@ export default function MapScreen() {
                 >
                   <Text style={styles.closeBtnText}>✕</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>أقرب الأماكن إليك 🎯</Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                  <AppIcon name="bin" size={18} color="#15803D" />
+                  <Text style={styles.modalTitle}>أقرب الأماكن إليك</Text>
+                </View>
               </View>
 
               {!userLocation ? (
@@ -629,9 +632,12 @@ export default function MapScreen() {
                     style={styles.locateActionBtn}
                     onPress={handleGetCurrentLocation}
                   >
-                    <Text style={styles.locateActionBtnText}>
-                      تحديد موقعي الآن 📍
-                    </Text>
+                    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                      <AppIcon name="gps" size={14} color="#15803D" />
+                      <Text style={styles.locateActionBtnText}>
+                        تحديد موقعي الآن
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 </View>
               ) : nearestPlaces.length === 0 ? (
@@ -652,13 +658,20 @@ export default function MapScreen() {
                         </Text>
                       </View>
                       <View style={styles.nearestInfo}>
-                        <Text style={styles.nearestTitle}>
-                          {item.kind === 'bin' && 'سلة 🟢'}
-                          {item.kind === 'collection_point' && 'نقطة تجميع 🌲'}
-                          {item.kind === 'wild_dump' && 'نقطة سوداء 🔴'}
-                          {' — '}
-                          {item.neighborhood}
-                        </Text>
+                        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+                          <AppIcon
+                            name={item.kind === 'bin' ? 'bin' : item.kind === 'collection_point' ? 'map' : 'reports'}
+                            size={14}
+                            color={item.kind === 'wild_dump' ? '#DC2626' : colors.primary}
+                          />
+                          <Text style={styles.nearestTitle}>
+                            {item.kind === 'bin' && 'سلة نفايات'}
+                            {item.kind === 'collection_point' && 'نقطة تجميع'}
+                            {item.kind === 'wild_dump' && 'نقطة سوداء'}
+                            {' — '}
+                            {item.neighborhood}
+                          </Text>
+                        </View>
                         <Text
                           style={styles.nearestNotes}
                           numberOfLines={1}
@@ -690,7 +703,10 @@ export default function MapScreen() {
                 >
                   <Text style={styles.closeBtnText}>✕</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>نحتاجو حاوية هنا 🗑️</Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+                  <AppIcon name="bin" size={18} color="#15803D" />
+                  <Text style={styles.modalTitle}>نحتاجو حاوية هنا</Text>
+                </View>
               </View>
 
               <Text style={styles.needBinDescription}>
@@ -736,7 +752,7 @@ export default function MapScreen() {
                 {isSubmittingVote ? (
                   <ActivityIndicator color="#FFF" size="small" />
                 ) : (
-                  <Text style={styles.submitVoteBtnText}>تأكيد التصويت الآن ✍️</Text>
+                  <Text style={styles.submitVoteBtnText}>تأكيد التصويت الآن</Text>
                 )}
               </TouchableOpacity>
             </View>

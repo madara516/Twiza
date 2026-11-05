@@ -125,9 +125,12 @@ export default function ProfileScreen() {
               <Text style={styles.userEmail}>@{user.email?.split('@')[0] || 'citizen'}</Text>
 
               <View style={styles.roleTag}>
-                <Text style={styles.roleTagText}>
-                  {isAdmin || role === 'admin' ? '🛡️ Admin' : '★ Citizen'}
-                </Text>
+                <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5 }}>
+                  <AppIcon name={isAdmin || role === 'admin' ? 'shield' : 'star'} size={12} color={colors.primary} focused />
+                  <Text style={styles.roleTagText}>
+                    {isAdmin || role === 'admin' ? 'Admin' : 'Citizen'}
+                  </Text>
+                </View>
               </View>
 
               {/* أعمدة الإحصائيات الأربعة المطابقة للموك آب */}
@@ -257,7 +260,9 @@ export default function ProfileScreen() {
         ) : (
           /* في حالة تصفح الضيف */
           <View style={styles.guestCard}>
-            <Text style={styles.guestIcon}>👤</Text>
+            <View style={styles.guestIconCircle}>
+              <AppIcon name="user" size={40} color="#15803D" />
+            </View>
             <Text style={styles.guestTitle}>أنت تتصفح كضيف</Text>
             <Text style={styles.guestSubtitle}>
               يمكنك استعراض الخريطة ومعرفة أماكن الحاويات بدون تسجيل، لكن لإضافة مكان
@@ -286,7 +291,10 @@ export default function ProfileScreen() {
               onPress={handleExitGuest}
               activeOpacity={0.85}
             >
-              <Text style={styles.exitGuestBtnText}>الخروج والعودة للشاشة الرئيسية 🚪</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <AppIcon name="logout" size={16} color="#DC2626" />
+                <Text style={styles.exitGuestBtnText}>الخروج والعودة للشاشة الرئيسية</Text>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -296,7 +304,9 @@ export default function ProfileScreen() {
       <Modal visible={showLogoutModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.confirmBox}>
-            <Text style={styles.confirmIcon}>🚪</Text>
+            <View style={styles.confirmIconCircle}>
+              <AppIcon name="logout" size={30} color="#DC2626" />
+            </View>
             <Text style={styles.confirmTitle}>تأكيد تسجيل الخروج</Text>
             <Text style={styles.confirmMessage}>
               هل أنت متأكد من رغبتك في تسجيل الخروج والعودة لشاشة البداية؟
@@ -673,9 +683,23 @@ const styles = StyleSheet.create({
     padding: 22,
     alignItems: 'center',
   },
-  confirmIcon: {
-    fontSize: 40,
-    marginBottom: 8,
+  guestIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#EAF4ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  confirmIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   confirmTitle: {
     fontFamily: theme.fontFamily,

@@ -54,7 +54,7 @@ export default function ForgotPasswordScreen() {
     >
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>استرجاع كلمة المرور 🔑</Text>
+          <Text style={styles.title}>استرجاع كلمة المرور</Text>
           <Text style={styles.subtitle}>
             أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة تعيين كلمة المرور
           </Text>
@@ -62,16 +62,16 @@ export default function ForgotPasswordScreen() {
 
         {successMessage ? (
           <View style={styles.successBox}>
-            <Text style={styles.successText}>✅ {successMessage}</Text>
+            <Text style={styles.successText}>{successMessage}</Text>
             <Text style={styles.successNote}>
-              💡 ملاحظة مهمة: يرجى تفقد مجلد الرسائل غير المرغوب فيها (Spam / Courrier indésirable) في بريدك الإلكتروني في حال تأخر ظهور الرسالة.
+              ملاحظة هامة: يرجى تفقد مجلد الرسائل غير المرغوب فيها (Spam) في بريدك الإلكتروني في حال تأخر ظهور الرسالة.
             </Text>
           </View>
         ) : null}
 
         {errorMessage ? (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
         ) : null}
 

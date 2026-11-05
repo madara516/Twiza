@@ -118,10 +118,10 @@ export const ReportResolvedRecognitionModal: React.FC = () => {
         <View style={styles.card}>
           {/* دائرة التكريم والأيقونة الاحتفالية */}
           <View style={styles.iconCircle}>
-            <Text style={styles.partyEmoji}>🌟</Text>
+            <AppIcon name="star" size={38} color="#15803D" focused />
           </View>
 
-          <Text style={styles.title}>عمل رائع يا بطل! 👏</Text>
+          <Text style={styles.title}>عمل رائع يا بطل!</Text>
 
           <Text style={styles.subtitle}>
             تم تأكيد صحة بلاغك حول{' '}
@@ -132,12 +132,18 @@ export const ReportResolvedRecognitionModal: React.FC = () => {
 
           <View style={styles.badgeRow}>
             <View style={styles.statPill}>
-              <Text style={styles.statPillText}>🌱 أثر بيئي إيجابي</Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="leaf" size={12} color="#475569" />
+                <Text style={styles.statPillText}>أثر بيئي إيجابي</Text>
+              </View>
             </View>
             <View style={[styles.statPill, styles.statPillGreen]}>
-              <Text style={[styles.statPillText, styles.statPillGreenText]}>
-                ✅ بلاغ مؤكد وموثوق
-              </Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="check" size={12} color="#15803D" />
+                <Text style={[styles.statPillText, styles.statPillGreenText]}>
+                  بلاغ مؤكد وموثوق
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -147,9 +153,12 @@ export const ReportResolvedRecognitionModal: React.FC = () => {
             onPress={handleTrackState}
             activeOpacity={0.88}
           >
-            <Text style={styles.primaryButtonText}>
-              اضغط هنا لمتابعة حالة البلاغ 📋
-            </Text>
+            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <AppIcon name="reports" size={16} color="#FFFFFF" />
+              <Text style={styles.primaryButtonText}>
+                اضغط هنا لمتابعة حالة البلاغ
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {/* زر المتابعة إلى التطبيق */}

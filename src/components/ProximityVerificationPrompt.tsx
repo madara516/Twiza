@@ -55,9 +55,12 @@ export const ProximityVerificationPrompt: React.FC<ProximityVerificationPromptPr
 
           <View style={styles.tagGroup}>
             <View style={[styles.distancePill, { backgroundColor: badgeBg }]}>
-              <Text style={[styles.distanceText, { color: badgeColor }]}>
-                📍 على بعد {prompt.distanceMeters}م
-              </Text>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="pin" size={11} color={badgeColor} />
+                <Text style={[styles.distanceText, { color: badgeColor }]}>
+                  على بعد {prompt.distanceMeters}م
+                </Text>
+              </View>
             </View>
             <View style={styles.categoryPill}>
               <AppIcon name={iconName as any} size={13} color="#475569" />
