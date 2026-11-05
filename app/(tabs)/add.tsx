@@ -35,7 +35,7 @@ import {
   OUT_OF_SERVICE_MESSAGE,
   getApproximateNeighborhood,
 } from '../../src/constants/regions';
-import { Neighborhood } from '../../src/constants/laghouat';
+import { Neighborhood, NEIGHBORHOODS } from '../../src/constants/laghouat';
 import { Place, PlaceKind, GeoLocation, Severity } from '../../src/types';
 import { StorageService } from '../../src/services/storageService';
 import { PlaceService } from '../../src/services/placeService';
@@ -356,6 +356,47 @@ export default function AddScreen() {
                 <Text style={styles.gpsSmallBtnText}>موقعي الحالي 🎯</Text>
               )}
             </TouchableOpacity>
+          </View>
+
+          {/* اختيار الحي للقفز السريع على الخريطة */}
+          <View style={{ marginBottom: 10 }}>
+            <Text style={{ fontSize: 13, color: colors.text, fontWeight: 'bold', textAlign: 'right', marginBottom: 6 }}>
+              الحي الحالي:{' '}
+              <Text style={{ color: colors.primary }}>
+                {getApproximateNeighborhood(location.latitude, location.longitude)}
+              </Text>
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row-reverse', gap: 6, paddingVertical: 4 }}>
+              {NEIGHBORHOODS.filter((n) => n.center !== null).map((nh) => {
+                const isSelected = getApproximateNeighborhood(location.latitude, location.longitude) === nh.nameAr;
+                return (
+                  <TouchableOpacity
+                    key={nh.id}
+                    style={[
+                      styles.neighborhoodChip,
+                      isSelected && styles.neighborhoodChipActive,
+                    ]}
+                    onPress={() => {
+                      if (nh.center) {
+                        const newLoc = { latitude: nh.center[0], longitude: nh.center[1] };
+                        setLocation(newLoc);
+                        mapRef.current?.flyTo(nh.center[0], nh.center[1], 16);
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.neighborhoodChipText,
+                        isSelected && styles.neighborhoodChipTextActive,
+                      ]}
+                    >
+                      {nh.nameAr}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
 
           <Text style={styles.hintText}>

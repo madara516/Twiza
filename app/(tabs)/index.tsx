@@ -23,6 +23,7 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -36,7 +37,11 @@ import {
   getApproximateNeighborhood,
   OUT_OF_SERVICE_MESSAGE,
 } from '../../src/constants/regions';
-import { Neighborhood } from '../../src/constants/laghouat';
+import {
+  Neighborhood,
+  NEIGHBORHOODS,
+  ACTIVE_NEIGHBORHOODS,
+} from '../../src/constants/laghouat';
 import { useAuth } from '../../src/context/AuthContext';
 import { usePlaces } from '../../src/hooks/usePlaces';
 import { Place, PlaceKind, GeoLocation } from '../../src/types';
@@ -55,6 +60,7 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [showNearestModal, setShowNearestModal] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('all');
 
   // حالات التصويت لميزة "نحتاجو حاوية هنا"
   const [showNeedBinModal, setShowNeedBinModal] = useState<boolean>(false);
@@ -321,6 +327,65 @@ export default function MapScreen() {
               نقاط سوداء
             </Text>
           </TouchableOpacity>
+        </View>
+
+        {/* شريط الانتقال السريع بين أحياء الأغواط الـ 28 مع الطيران للموقع */}
+        <View style={styles.neighborhoodBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.neighborhoodScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.nhChip,
+                selectedNeighborhood === 'all' && styles.nhChipActive,
+              ]}
+              onPress={() => {
+                setSelectedNeighborhood('all');
+                mapRef.current?.flyTo(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude, 14);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.nhChipText,
+                  selectedNeighborhood === 'all' && styles.nhChipTextActive,
+                ]}
+              >
+                📍 كل الأغواط
+              </Text>
+            </TouchableOpacity>
+
+            {NEIGHBORHOODS.filter((n) => n.center !== null).map((nh) => {
+              const isSelected = selectedNeighborhood === nh.id;
+              return (
+                <TouchableOpacity
+                  key={nh.id}
+                  style={[
+                    styles.nhChip,
+                    isSelected && styles.nhChipActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedNeighborhood(nh.id);
+                    if (nh.center) {
+                      mapRef.current?.flyTo(nh.center[0], nh.center[1], 16);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.nhChipText,
+                      isSelected && styles.nhChipTextActive,
+                    ]}
+                  >
+                    {nh.nameAr}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
         {/* الخريطة المجانية المتكاملة مع تمرير موقع المستخدم */}
@@ -674,31 +739,33 @@ export default function MapScreen() {
               </Text>
 
               <Text style={styles.needBinSectionTitle}>اختر الحي المراد التصويت له:</Text>
-              <View style={styles.needBinChipsGrid}>
-                {ACTIVE_REGION.neighborhoods.map((nh) => {
-                  const isSelected = selectedVoteNeighborhood === nh;
-                  return (
-                    <TouchableOpacity
-                      key={nh}
-                      style={[
-                        styles.needBinChip,
-                        isSelected && styles.needBinChipActive,
-                      ]}
-                      onPress={() => setSelectedVoteNeighborhood(nh as Neighborhood)}
-                      activeOpacity={0.8}
-                    >
-                      <Text
+              <ScrollView style={styles.needBinScroll} showsVerticalScrollIndicator={true}>
+                <View style={styles.needBinChipsGrid}>
+                  {ACTIVE_REGION.neighborhoods.map((nh) => {
+                    const isSelected = selectedVoteNeighborhood === nh;
+                    return (
+                      <TouchableOpacity
+                        key={nh}
                         style={[
-                          styles.needBinChipText,
-                          isSelected && styles.needBinChipTextActive,
+                          styles.needBinChip,
+                          isSelected && styles.needBinChipActive,
                         ]}
+                        onPress={() => setSelectedVoteNeighborhood(nh as Neighborhood)}
+                        activeOpacity={0.8}
                       >
-                        {nh}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                        <Text
+                          style={[
+                            styles.needBinChipText,
+                            isSelected && styles.needBinChipTextActive,
+                          ]}
+                        >
+                          {nh}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
 
               <TouchableOpacity
                 style={[
@@ -806,6 +873,45 @@ const styles = StyleSheet.create({
   filterChipActiveRed: {
     backgroundColor: '#FEE2E2',
     borderColor: '#DC2626',
+  },
+  neighborhoodBar: {
+    backgroundColor: '#FAF8F3',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ECE7DB',
+    zIndex: 15,
+  },
+  neighborhoodScroll: {
+    flexDirection: 'row-reverse',
+    paddingHorizontal: 12,
+    gap: 8,
+    alignItems: 'center',
+  },
+  nhChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DED8CC',
+  },
+  nhChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  nhChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    fontFamily: theme.fontFamily,
+  },
+  nhChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  needBinScroll: {
+    maxHeight: 220,
+    marginBottom: 16,
   },
   filterText: {
     fontSize: 12,
