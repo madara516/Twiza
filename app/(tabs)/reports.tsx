@@ -39,6 +39,7 @@ import { PlaceService } from '../../src/services/placeService';
 import { StorageService } from '../../src/services/storageService';
 import { ACTIVE_REGION } from '../../src/constants/regions';
 import { AppIcon } from '../../src/components/AppIcon';
+import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
 
 interface UnifiedTrackingItem {
   id: string;
@@ -222,6 +223,14 @@ export default function ReportsScreen() {
       setIsSubmitting(false);
     }
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <GuestLoginPrompt redirectTo="/(tabs)/reports" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>

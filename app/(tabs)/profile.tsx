@@ -28,6 +28,7 @@ import { useTheme, ThemeMode } from '../../src/context/ThemeContext';
 import { Language } from '../../src/i18n';
 import { AuthService } from '../../src/services/authService';
 import { AppIcon } from '../../src/components/AppIcon';
+import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -285,23 +286,14 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </>
         ) : (
-          /* في حالة تصفح الضيف */
-          <View style={[styles.guestCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <View style={[styles.guestIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
-              <AppIcon name="user" size={40} color={colors.primary} />
-            </View>
-            <Text style={[styles.guestTitle, { color: colors.text }]}>{t('profile.guest_title')}</Text>
-            <Text style={[styles.guestSubtitle, { color: colors.textSecondary }]}>
-              {t('profile.guest_desc')}
-            </Text>
-
-            {/* إعدادات سريعة للغة والمظهر للضيف */}
-            <View style={{ width: '100%', flexDirection: 'row', gap: 10, marginVertical: 12 }}>
+          /* في حالة تصفح الضيف: إعدادات التطبيق + قفل الملف الشخصي مع إعادة التوجيه التلقائية */
+          <View style={{ width: '100%', alignItems: 'center' }}>
+            <View style={{ width: '100%', maxWidth: 380, flexDirection: 'row', gap: 10, marginBottom: 16 }}>
               <TouchableOpacity
                 style={[styles.guestPrefBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
                 onPress={() => setShowLanguageModal(true)}
               >
-                <Text style={{ fontSize: 13, color: colors.text }}>
+                <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
                   {currentLangOption.flag} {currentLangOption.nativeName}
                 </Text>
               </TouchableOpacity>
@@ -309,39 +301,13 @@ export default function ProfileScreen() {
                 style={[styles.guestPrefBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
                 onPress={() => setShowThemeModal(true)}
               >
-                <Text style={{ fontSize: 13, color: colors.text }}>
-                  {isDark ? '🌲 ' + t('theme.dark') : '☀️ ' + t('theme.light')}
+                <Text style={{ fontSize: 13, color: colors.text, fontWeight: '700' }}>
+                  {isDark ? t('theme.dark') : t('theme.light')}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-              onPress={() => router.push('/(auth)/login')}
-              activeOpacity={0.88}
-            >
-              <Text style={styles.primaryBtnText}>{t('profile.login')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.secondaryBtn, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
-              onPress={() => router.push('/(auth)/register')}
-              activeOpacity={0.88}
-            >
-              <Text style={[styles.secondaryBtnText, { color: colors.text }]}>{t('profile.register')}</Text>
-            </TouchableOpacity>
-
-            {/* زر الخروج من وضع الضيف والعودة لشاشة البداية */}
-            <TouchableOpacity
-              style={styles.exitGuestBtn}
-              onPress={performLogout}
-              activeOpacity={0.85}
-            >
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <AppIcon name="logout" size={16} color="#DC2626" />
-                <Text style={styles.exitGuestBtnText}>{t('profile.exit_guest')}</Text>
-              </View>
-            </TouchableOpacity>
+            <GuestLoginPrompt redirectTo="/(tabs)/profile" />
           </View>
         )}
       </ScrollView>

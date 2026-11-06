@@ -33,6 +33,7 @@ import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { FreeMap, FreeMapRef } from '../../src/components/FreeMap';
 import { AppIcon } from '../../src/components/AppIcon';
+import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
 import {
   ACTIVE_REGION,
   isLocationInRegion,
@@ -204,23 +205,7 @@ export default function AddScreen() {
   if (!user) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centerContainer}>
-          <View style={styles.lockIconCircle}>
-            <AppIcon name="shield" size={40} color={colors.primary} />
-          </View>
-          <Text style={styles.title}>تسجيل الدخول مطلوب للإبلاغ</Text>
-          <Text style={styles.desc}>
-            لإضافة حاوية جديدة أو نقطة تجميع أو التبليغ عن نقطة سوداء، يجب
-            تسجيل الدخول بحساب مواطن للحفاظ على موثوقية البلاغات ومتابعة أثرها.
-          </Text>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => router.push('/(auth)/login')}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>تسجيل الدخول</Text>
-          </TouchableOpacity>
-        </View>
+        <GuestLoginPrompt redirectTo="/(tabs)/add" />
       </SafeAreaView>
     );
   }

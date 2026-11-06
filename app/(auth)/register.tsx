@@ -17,13 +17,14 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { AuthService } from '../../src/services/authService';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -58,7 +59,8 @@ export default function RegisterScreen() {
       setLoading(true);
       setErrorMessage(null);
       await AuthService.register(email, password, trimmedName);
-      router.replace('/(tabs)');
+      const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/(tabs)';
+      router.replace(destination as any);
     } catch (err: any) {
       setErrorMessage(err.message || 'فشل إنشاء الحساب.');
     } finally {
@@ -149,7 +151,14 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           <View style={styles.footerRow}>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: '/(auth)/login',
+                  params: { redirectTo },
+                })
+              }
+            >
               <Text style={styles.loginLink}>تسجيل الدخول</Text>
             </TouchableOpacity>
             <Text style={styles.footerText}>لديك حساب بالفعل؟</Text>

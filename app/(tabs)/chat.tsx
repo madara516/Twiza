@@ -462,7 +462,12 @@ export default function ChatScreen() {
             </View>
             <TouchableOpacity
               style={styles.guestLoginBtn}
-              onPress={() => router.push('/(auth)/login')}
+              onPress={() =>
+                router.push({
+                  pathname: '/(auth)/login',
+                  params: { redirectTo: '/(tabs)/chat' },
+                })
+              }
               activeOpacity={0.85}
             >
               <Text style={styles.guestLoginBtnText}>تسجيل الدخول</Text>

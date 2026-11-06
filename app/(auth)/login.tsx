@@ -20,7 +20,7 @@ import {
   ScrollView,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuthService } from '../../src/services/authService';
 import { useAuth } from '../../src/context/AuthContext';
 import { useLanguage } from '../../src/context/LanguageContext';
@@ -31,6 +31,7 @@ import { Language } from '../../src/i18n';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
   const { setGuestMode } = useAuth();
   const { language, setLanguage, t, isRTL } = useLanguage();
   const { colors, isDark } = useTheme();
@@ -68,7 +69,8 @@ export default function LoginScreen() {
       }
 
       setGuestMode(false);
-      router.replace('/(tabs)');
+      const destination = (redirectTo && redirectTo.startsWith('/')) ? redirectTo : '/(tabs)';
+      router.replace(destination as any);
     } catch (err: any) {
       setErrorMessage(
         err.message ||

@@ -24,13 +24,26 @@ import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { AppIcon } from '../../src/components/AppIcon';
+import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { colors: activeColors } = useTheme();
+  const { t } = useLanguage();
 
-  const userName = profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'عادل';
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: activeColors.background }]}>
+        <GuestLoginPrompt redirectTo="/(tabs)" />
+      </SafeAreaView>
+    );
+  }
+
+  const userName = profile?.displayName || user?.displayName || user?.email?.split('@')[0] || '';
 
   return (
     <SafeAreaView style={styles.safeArea}>

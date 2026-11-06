@@ -90,7 +90,7 @@ export default function MapScreen() {
   const handleConfirmStillThere = async () => {
     if (!user) {
       Alert.alert('تسجيل الدخول مطلوب', 'يرجى تسجيل الدخول لتأكيد وجود هذا المكان.');
-      router.push('/(auth)/login');
+      router.push({ pathname: '/(auth)/login', params: { redirectTo: '/(tabs)/map' } });
       return;
     }
     if (!selectedPlace || hasConfirmed || isConfirming) return;
@@ -114,7 +114,7 @@ export default function MapScreen() {
   const handleNeedBinPress = () => {
     if (!user) {
       Alert.alert('تسجيل الدخول مطلوب', 'يرجى تسجيل الدخول للتصويت على طلب حاوية في حيك.');
-      router.push('/(auth)/login');
+      router.push({ pathname: '/(auth)/login', params: { redirectTo: '/(tabs)/map' } });
       return;
     }
     // تحديد الحي تلقائياً من موقع الـ GPS إذا كان متاحاً
@@ -568,20 +568,20 @@ export default function MapScreen() {
                 style={styles.directionsBtn}
                 onPress={() => handleOpenDirections(selectedPlace)}
               >
-                <Text style={styles.directionsBtnText}>الاتجاهات 🧭</Text>
+                <Text style={styles.directionsBtnText}>الاتجاهات</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.reportBtn}
                 onPress={() => {
                   if (!user) {
-                    router.push('/(auth)/login');
+                    router.push({ pathname: '/(auth)/login', params: { redirectTo: '/(tabs)/reports' } });
                   } else {
                     router.push('/(tabs)/reports');
                   }
                 }}
               >
-                <Text style={styles.reportBtnText}>تبليغ ⚠️</Text>
+                <Text style={styles.reportBtnText}>تبليغ</Text>
               </TouchableOpacity>
 
               {/* تصويت مباشر لوضع حاوية بديلة للنقطة السوداء */}

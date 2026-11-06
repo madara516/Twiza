@@ -130,12 +130,12 @@ export default function TabLayout() {
         }}
       />
 
-      {/* التبويبات الثانوية التي لا تظهر في الشريط السفلي */}
+      {/* التبويبات الثانوية التي لا تظهر في الشريط السفلي لكنها قابلة للفتح */}
       <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
-          href: null,
+          tabBarItemStyle: { display: 'none' },
           headerShown: false,
         }}
       />
@@ -144,7 +144,7 @@ export default function TabLayout() {
         name="admin"
         options={{
           title: 'Admin',
-          href: null,
+          tabBarItemStyle: { display: 'none' },
           headerShown: false,
         }}
       />
