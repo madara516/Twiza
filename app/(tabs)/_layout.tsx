@@ -135,8 +135,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
+          href: null,
           headerShown: false,
         }}
       />
@@ -145,10 +144,8 @@ export default function TabLayout() {
         name="admin"
         options={{
           title: 'Admin',
-          tabBarButton: () => null,
-          tabBarItemStyle: { display: 'none' },
+          href: null,
           headerShown: false,
-          href: hasAdminAccess ? '/(tabs)/admin' : null,
         }}
       />
     </Tabs>

@@ -1,9 +1,12 @@
 /**
- * شاشة البداية البطولية (Hero Splash Screen)
+ * شاشة البداية المطابقة تماماً للموك آب (Mockup Splash Screen)
  * 
- * تظهر فور فتح التطبيق مع تأثيرات حركية انسيابية (Pulsing Glow & Smooth Spring Entrance)،
- * تتيح للمستخدم الاختيار الفوري بين اللغات الثلاث (العربية / Français / English)،
- * ثم تنتقل بحركة سلسة (Fade & Scale Transition) إلى شاشة تسجيل الدخول أو الشاشة الرئيسية.
+ * الميزات:
+ * 1. الشعار الرسمي المستخرج من التطبيق بدون الكلمات (The extracted App Logo Emblem)
+ * 2. العنوان والعبارة الملهمة: "Twiza" و "Small actions. Big changes."
+ * 3. التدرج الأخضر النعناعي الفاتح الهادئ (#FFFFFF ➔ #D4EDDC)
+ * 4. رسم الخطوط الأثرية لمدينة الأغواط في الأسفل (Laghouat Skyline)
+ * 5. انتقال سلس وحركي بالزنبرك والتلاشي نحو شاشة تسجيل الدخول.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -14,33 +17,31 @@ import {
   Animated,
   TouchableOpacity,
   Easing,
+  Image,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useLanguage } from '../src/context/LanguageContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { AppIcon } from '../src/components/AppIcon';
 import { Language } from '../src/i18n';
 
-export default function HeroSplashScreen() {
+export default function MockupSplashScreen() {
   const router = useRouter();
   const { user, isGuest, loading: authLoading } = useAuth();
   const { language, setLanguage, t } = useLanguage();
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
 
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // قيم التحريك (Animation Values)
-  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(24)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const exitFadeAnim = useRef(new Animated.Value(1)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
+  const exitScaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // 1. حركة الدخول الانسيابية
+    // 1. حركة الدخول الانسيابية للشعار والنصوص
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -54,65 +55,31 @@ export default function HeroSplashScreen() {
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(progressAnim, {
-        toValue: 1,
-        duration: 2200,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      }),
     ]).start();
 
-    // 2. نبض الهالة الضوئية حول الشعار
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.14,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulseLoop.start();
-
-    // 3. التوجيه التلقائي بعد اكتمال العرض
+    // 2. الانتقال التلقائي بعد ثانيتين ونصف
     const timer = setTimeout(() => {
       proceedToNextScreen();
-    }, 2400);
+    }, 2500);
 
-    return () => {
-      clearTimeout(timer);
-      pulseLoop.stop();
-    };
+    return () => clearTimeout(timer);
   }, [user, isGuest, authLoading]);
 
   const proceedToNextScreen = () => {
     if (hasNavigated) return;
     setHasNavigated(true);
 
-    // حركة الخروج السينمائية (Smooth Exit Animation)
+    // حركة الخروج السلسة (Smooth Exit)
     Animated.parallel([
       Animated.timing(exitFadeAnim, {
         toValue: 0,
-        duration: 450,
+        duration: 400,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-      Animated.timing(scaleAnim, {
-        toValue: 1.08,
-        duration: 450,
+      Animated.timing(exitScaleAnim, {
+        toValue: 1.05,
+        duration: 400,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -129,295 +96,218 @@ export default function HeroSplashScreen() {
     setLanguage(langCode);
   };
 
-  return (
-    <View style={styles.container}>
-      {/* خلفية بتدرج أخضر زمردي داكن فخم */}
-      <View style={styles.backgroundGlow} />
+  // نصوص الشعار اللفظي حسب اللغة المختارة
+  const getTaglineText = () => {
+    if (language === 'ar') {
+      return 'خطوات بسيطة..\nأثر عظيم.';
+    }
+    if (language === 'fr') {
+      return 'Petits gestes.\nGrands impacts.';
+    }
+    return 'Small actions.\nBig changes.';
+  };
 
-      <Animated.View
+  return (
+    <TouchableOpacity
+      style={styles.touchableWrapper}
+      activeOpacity={1}
+      onPress={proceedToNextScreen}
+    >
+      <View
         style={[
-          styles.contentWrapper,
-          {
-            opacity: Animated.multiply(fadeAnim, exitFadeAnim),
-            transform: [{ scale: scaleAnim }],
-          },
+          styles.container,
+          Platform.OS === 'web'
+            ? ({
+                background: isDark
+                  ? 'linear-gradient(180deg, #092116 0%, #061910 60%, #030F0A 100%)'
+                  : 'linear-gradient(180deg, #FFFFFF 0%, #F2F8F4 45%, #D4EEDC 100%)',
+              } as any)
+            : { backgroundColor: isDark ? '#061910' : '#EAF5EE' },
         ]}
       >
-        {/* هالة النبض الدائرية الخلفية */}
-        <Animated.View
-          style={[
-            styles.pulseRing,
-            {
-              transform: [{ scale: pulseAnim }],
-            },
-          ]}
-        />
-
-        {/* شعار التويزة الدائري الفخم */}
-        <View style={styles.emblemContainer}>
-          <View style={styles.emblemInner}>
-            <AppIcon name="leaf" size={48} color="#4ADE80" focused />
-          </View>
+        {/* أزرار اختيار اللغة السرية العلوية */}
+        <View style={styles.topLangBar}>
+          <TouchableOpacity
+            style={[styles.langChip, language === 'ar' && styles.langChipActive]}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleSelectLanguage('ar');
+            }}
+          >
+            <Text style={[styles.langChipText, language === 'ar' && styles.langChipTextActive]}>
+              العربية
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langChip, language === 'fr' && styles.langChipActive]}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleSelectLanguage('fr');
+            }}
+          >
+            <Text style={[styles.langChipText, language === 'fr' && styles.langChipTextActive]}>
+              Français
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langChip, language === 'en' && styles.langChipActive]}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              handleSelectLanguage('en');
+            }}
+          >
+            <Text style={[styles.langChipText, language === 'en' && styles.langChipTextActive]}>
+              English
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* العناوين والشعار اللفظي */}
+        {/* الكتلة المركزية: شعار التطبيق المستخرج بدون الكلمات + Twiza + العبارة */}
         <Animated.View
           style={[
-            styles.textBlock,
+            styles.centerContent,
             {
-              transform: [{ translateY: slideAnim }],
+              opacity: Animated.multiply(fadeAnim, exitFadeAnim),
+              transform: [{ scale: Animated.multiply(scaleAnim, exitScaleAnim) }],
             },
           ]}
         >
-          <Text style={styles.brandTitleArabic}>التـويـزة</Text>
-          <Text style={styles.brandTitleEnglish}>AL-TWIZA</Text>
-          <View style={styles.sloganDivider} />
-          <Text style={styles.brandSlogan}>{t('tagline')}</Text>
-          <Text style={styles.brandSubSlogan}>{t('hero_subtitle')}</Text>
-        </Animated.View>
-
-        {/* محدد اللغات الثلاث الصريح (Arabic / Français / English) */}
-        <View style={styles.languagePillsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.langPill,
-              language === 'ar' && styles.langPillActive,
-            ]}
-            onPress={() => handleSelectLanguage('ar')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.langPillText, language === 'ar' && styles.langPillTextActive]}>
-              🇩🇿 العربية
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.langPill,
-              language === 'fr' && styles.langPillActive,
-            ]}
-            onPress={() => handleSelectLanguage('fr')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.langPillText, language === 'fr' && styles.langPillTextActive]}>
-              🇫🇷 Français
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.langPill,
-              language === 'en' && styles.langPillActive,
-            ]}
-            onPress={() => handleSelectLanguage('en')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.langPillText, language === 'en' && styles.langPillTextActive]}>
-              🇬🇧 English
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* شريط التحميل الأنيق وزر البدء الفوري */}
-        <View style={styles.bottomActions}>
-          <View style={styles.progressTrack}>
-            <Animated.View
-              style={[
-                styles.progressBar,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
+          {/* شعار التطبيق الرسمي المفرغ بدون الكلمات */}
+          <View style={styles.logoWrapper}>
+            <Image
+              source={require('../assets/images/app_logo_emblem.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
             />
           </View>
 
-          <TouchableOpacity
-            style={styles.startBtn}
-            onPress={proceedToNextScreen}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.startBtnText}>{t('get_started')}</Text>
-            <AppIcon name="chevron_right" size={16} color="#061C12" />
-          </TouchableOpacity>
+          {/* العنوان الرسمي: Twiza */}
+          <Text style={[styles.title, { color: isDark ? '#4ADE80' : '#153E2B' }]}>
+            Twiza
+          </Text>
+
+          {/* العبارة الملهمة المطابقة للموك آب: Small actions. Big changes. */}
+          <Text style={[styles.subtitle, { color: isDark ? '#A7C4B5' : '#2D5541' }]}>
+            {getTaglineText()}
+          </Text>
+        </Animated.View>
+
+        {/* رسم الخطوط الأثرية لمدينة الأغواط في أسفل الشاشة (Laghouat Skyline) */}
+        <View style={styles.skylineWrapper} pointerEvents="none">
+          <Image
+            source={require('../assets/images/splash_skyline.png')}
+            style={[
+              styles.skylineImage,
+              {
+                opacity: isDark ? 0.35 : 0.85,
+                tintColor: isDark ? '#4ADE80' : undefined,
+              },
+            ]}
+            resizeMode="cover"
+          />
         </View>
-      </Animated.View>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  touchableWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#071811', // Deep Emerald Forest
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  backgroundGlow: {
-    position: 'absolute',
-    width: 450,
-    height: 450,
-    borderRadius: 225,
-    backgroundColor: '#133D2B',
-    opacity: 0.45,
-    top: '25%',
-    ...(Platform.OS === 'web'
-      ? ({
-          filter: 'blur(90px)',
-        } as any)
-      : {}),
-  },
-  contentWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
-    paddingHorizontal: 24,
-    zIndex: 2,
-  },
-  pulseRing: {
-    position: 'absolute',
-    top: -24,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(74, 222, 128, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(74, 222, 128, 0.35)',
-  },
-  emblemContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#0F2E22',
-    borderWidth: 2,
-    borderColor: '#4ADE80',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#4ADE80',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    marginBottom: 24,
-  },
-  emblemInner: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#143D2D',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  textBlock: {
-    alignItems: 'center',
-    marginBottom: 28,
-  },
-  brandTitleArabic: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#F0FDF4',
-    letterSpacing: 1,
-    textAlign: 'center',
-  },
-  brandTitleEnglish: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#86EFAC',
-    letterSpacing: 5,
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  sloganDivider: {
-    width: 48,
-    height: 2,
-    backgroundColor: '#22C55E',
-    borderRadius: 1,
-    marginVertical: 14,
-  },
-  brandSlogan: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#DCFCE7',
-    textAlign: 'center',
-  },
-  brandSubSlogan: {
-    fontSize: 12,
-    color: '#A7C4B5',
-    textAlign: 'center',
-    marginTop: 6,
-    paddingHorizontal: 20,
-  },
-  languagePillsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    backgroundColor: 'rgba(15, 46, 34, 0.75)',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#1B4D39',
-  },
-  langPill: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
-  },
-  langPillActive: {
-    backgroundColor: '#22C55E',
-  },
-  langPillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#A7C4B5',
-  },
-  langPillTextActive: {
-    color: '#061C12',
-    fontWeight: '800',
-  },
-  bottomActions: {
-    width: '100%',
-    maxWidth: 280,
-    alignItems: 'center',
-    gap: 16,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 3,
-    backgroundColor: '#133D2B',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBar: {
     height: '100%',
-    backgroundColor: '#4ADE80',
-    borderRadius: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  startBtn: {
+  topLangBar: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 48 : 20,
     flexDirection: 'row',
+    gap: 6,
+    zIndex: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(35, 112, 63, 0.15)',
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as any) : {}),
+  },
+  langChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+  },
+  langChipActive: {
+    backgroundColor: '#23703F',
+  },
+  langChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2D5541',
+  },
+  langChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  centerContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#4ADE80',
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-    borderRadius: 24,
-    elevation: 4,
-    shadowColor: '#4ADE80',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    zIndex: 2,
+    marginTop: -40,
+    paddingHorizontal: 24,
   },
-  startBtnText: {
-    fontSize: 14,
+  logoWrapper: {
+    width: 110,
+    height: 107,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoImage: {
+    width: 110,
+    height: 107,
+  },
+  title: {
+    fontSize: 36,
     fontWeight: '800',
-    color: '#061C12',
+    letterSpacing: -0.5,
+    marginBottom: 10,
+    fontFamily: Platform.select({
+      web: "'Cairo', 'Segoe UI', sans-serif",
+      default: 'System',
+    }),
+  },
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    fontWeight: '500',
+    fontFamily: Platform.select({
+      web: "'Cairo', 'Tajawal', sans-serif",
+      default: 'System',
+    }),
+  },
+  skylineWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    height: 160,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  skylineImage: {
+    width: '100%',
+    height: 160,
   },
 });
