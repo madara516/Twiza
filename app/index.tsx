@@ -1,12 +1,12 @@
 /**
- * شاشة البداية المطابقة تماماً للموك آب (Mockup Splash Screen)
+ * شاشة البداية المطابقة تماماً للموك آب بدقة SVG فيكتور عالية (Ultra-Crisp Vector Splash Screen)
  * 
  * الميزات:
- * 1. الشعار الرسمي المستخرج من التطبيق بدون الكلمات (The extracted App Logo Emblem)
- * 2. العنوان والعبارة الملهمة: "Twiza" و "Small actions. Big changes."
- * 3. التدرج الأخضر النعناعي الفاتح الهادئ (#FFFFFF ➔ #D4EDDC)
- * 4. رسم الخطوط الأثرية لمدينة الأغواط في الأسفل (Laghouat Skyline)
- * 5. انتقال سلس وحركي بالزنبرك والتلاشي نحو شاشة تسجيل الدخول.
+ * 1. شعار التويزة (الدرع والورقة الصاعدة) مرسوم بدقة SVG فيكتور نقية 100% بدون كلمات وبدون أي تشويش.
+ * 2. رسم معالم مدينة الأغواط الأثرية (المئذنة، النخيل الباسق، القبة المعمارية، والأسوار العتيقة) كأفق فيكتور نقي.
+ * 3. التدرج اللوني الهادئ (#FFFFFF ➔ #F2F8F4 ➔ #D4EEDC).
+ * 4. العنوان والعبارة الملهمة: "Twiza" و "Small actions. Big changes."
+ * 5. أزرار اللغات الثلاث السريعة في الأعلى وانتقال حركي ناعم نحو شاشة تسجيل الدخول.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -17,25 +17,26 @@ import {
   Animated,
   TouchableOpacity,
   Easing,
-  Image,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 import { useLanguage } from '../src/context/LanguageContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { Language } from '../src/i18n';
+import { TwizaEmblemSvg, LaghouatSkylineSvg } from '../src/components/SplashArt';
 
 export default function MockupSplashScreen() {
   const router = useRouter();
   const { user, isGuest, loading: authLoading } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { isDark } = useTheme();
 
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // قيم التحريك (Animation Values)
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.82)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const exitFadeAnim = useRef(new Animated.Value(1)).current;
   const exitScaleAnim = useRef(new Animated.Value(1)).current;
@@ -51,7 +52,7 @@ export default function MockupSplashScreen() {
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 850,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
@@ -60,7 +61,7 @@ export default function MockupSplashScreen() {
     // 2. الانتقال التلقائي بعد ثانيتين ونصف
     const timer = setTimeout(() => {
       proceedToNextScreen();
-    }, 2500);
+    }, 2600);
 
     return () => clearTimeout(timer);
   }, [user, isGuest, authLoading]);
@@ -162,7 +163,7 @@ export default function MockupSplashScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* الكتلة المركزية: شعار التطبيق المستخرج بدون الكلمات + Twiza + العبارة */}
+        {/* الكتلة المركزية: شعار التطبيق الفيكتوري الصافي + Twiza + العبارة */}
         <Animated.View
           style={[
             styles.centerContent,
@@ -172,13 +173,17 @@ export default function MockupSplashScreen() {
             },
           ]}
         >
-          {/* شعار التطبيق الرسمي المفرغ بدون الكلمات */}
+          {/* شعار التطبيق الرسمي المفرغ بدقة SVG فائقة بدون كلمات */}
           <View style={styles.logoWrapper}>
-            <Image
-              source={require('../assets/images/app_logo_emblem.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            {Platform.OS === 'web' ? (
+              <TwizaEmblemSvg size={106} isDark={isDark} />
+            ) : (
+              <Image
+                source={require('../assets/images/app_logo_emblem.png')}
+                style={styles.logoImageFallback}
+                resizeMode="contain"
+              />
+            )}
           </View>
 
           {/* العنوان الرسمي: Twiza */}
@@ -192,19 +197,17 @@ export default function MockupSplashScreen() {
           </Text>
         </Animated.View>
 
-        {/* رسم الخطوط الأثرية لمدينة الأغواط في أسفل الشاشة (Laghouat Skyline) */}
+        {/* رسم الخطوط الأثرية لمدينة الأغواط بدقة فيكتور نقية (SVG Laghouat Skyline) */}
         <View style={styles.skylineWrapper} pointerEvents="none">
-          <Image
-            source={require('../assets/images/splash_skyline.png')}
-            style={[
-              styles.skylineImage,
-              {
-                opacity: isDark ? 0.35 : 0.85,
-                tintColor: isDark ? '#4ADE80' : undefined,
-              },
-            ]}
-            resizeMode="cover"
-          />
+          {Platform.OS === 'web' ? (
+            <LaghouatSkylineSvg isDark={isDark} />
+          ) : (
+            <Image
+              source={require('../assets/images/splash_skyline.png')}
+              style={styles.skylineImageFallback}
+              resizeMode="cover"
+            />
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
     zIndex: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 20,
@@ -261,19 +264,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
-    marginTop: -40,
+    marginTop: -30,
     paddingHorizontal: 24,
   },
   logoWrapper: {
-    width: 110,
-    height: 107,
+    width: 108,
+    height: 106,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  logoImage: {
-    width: 110,
-    height: 107,
+  logoImageFallback: {
+    width: 108,
+    height: 106,
   },
   title: {
     fontSize: 36,
@@ -301,13 +304,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: '100%',
-    height: 160,
+    height: 180,
     justifyContent: 'flex-end',
     alignItems: 'center',
     zIndex: 1,
   },
-  skylineImage: {
+  skylineImageFallback: {
     width: '100%',
-    height: 160,
+    height: 180,
   },
 });
