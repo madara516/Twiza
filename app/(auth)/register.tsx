@@ -20,11 +20,15 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { AuthService } from '../../src/services/authService';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { redirectTo } = useLocalSearchParams<{ redirectTo?: string }>();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -70,13 +74,17 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.keyboardView}
+      style={[styles.keyboardView, { backgroundColor: themeColors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>انضم إلى التويزة</Text>
-          <Text style={styles.subtitle}>سجل كمواطن وساهم في نظافة مدينتك</Text>
+          <Text style={[styles.title, { color: themeColors.primary }]}>
+            {language === 'ar' ? 'انضم إلى التويزة' : language === 'fr' ? 'Rejoindre Twiza' : 'Join Twiza'}
+          </Text>
+          <Text style={[styles.subtitle, { color: themeColors.textSecondary }]}>
+            {language === 'ar' ? 'سجل كمواطن وساهم في نظافة مدينتك' : language === 'fr' ? 'Inscrivez-vous en tant que citoyen' : 'Register as a citizen and help clean your city'}
+          </Text>
         </View>
 
         {errorMessage ? (
@@ -87,66 +95,98 @@ export default function RegisterScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>الاسم واللقب</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>
+              {language === 'ar' ? 'الاسم واللقب' : language === 'fr' ? 'Nom et Prénom' : 'Full Name'}
+            </Text>
             <TextInput
-              style={styles.input}
-              placeholder="مثال: محمد بن علي"
-              placeholderTextColor="#9E9E9E"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  color: themeColors.text,
+                  textAlign: isRTL ? 'right' : 'left',
+                },
+              ]}
+              placeholder={language === 'ar' ? 'مثال: محمد بن علي' : 'Ex: John Doe'}
+              placeholderTextColor={themeColors.textMuted}
               value={displayName}
               onChangeText={setDisplayName}
-              textAlign="right"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>البريد الإلكتروني</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>{t('auth.email')}</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  color: themeColors.text,
+                  textAlign: isRTL ? 'right' : 'left',
+                },
+              ]}
               placeholder="example@mail.com"
-              placeholderTextColor="#9E9E9E"
+              placeholderTextColor={themeColors.textMuted}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              textAlign="right"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>كلمة المرور</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>{t('auth.password')}</Text>
             <TextInput
-              style={styles.input}
-              placeholder="6 أحرف على الأقل"
-              placeholderTextColor="#9E9E9E"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  color: themeColors.text,
+                  textAlign: isRTL ? 'right' : 'left',
+                },
+              ]}
+              placeholder="••••••••"
+              placeholderTextColor={themeColors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
-              textAlign="right"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>تأكيد كلمة المرور</Text>
+            <Text style={[styles.label, { color: themeColors.text }]}>
+              {language === 'ar' ? 'تأكيد كلمة المرور' : language === 'fr' ? 'Confirmer le mot de passe' : 'Confirm Password'}
+            </Text>
             <TextInput
-              style={styles.input}
-              placeholder="أعد كتابة كلمة المرور"
-              placeholderTextColor="#9E9E9E"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: themeColors.surface,
+                  borderColor: themeColors.border,
+                  color: themeColors.text,
+                  textAlign: isRTL ? 'right' : 'left',
+                },
+              ]}
+              placeholder="••••••••"
+              placeholderTextColor={themeColors.textMuted}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
-              textAlign="right"
             />
           </View>
 
           <TouchableOpacity
-            style={[styles.submitBtn, loading && styles.disabledBtn]}
+            style={[styles.submitBtn, { backgroundColor: themeColors.primary }, loading && styles.disabledBtn]}
             onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color={isDark ? '#061C12' : '#FFF'} />
             ) : (
-              <Text style={styles.submitBtnText}>إنشاء الحساب</Text>
+              <Text style={[styles.submitBtnText, { color: isDark ? '#061C12' : '#FFF' }]}>{t('profile.register')}</Text>
             )}
           </TouchableOpacity>
 
@@ -159,9 +199,11 @@ export default function RegisterScreen() {
                 })
               }
             >
-              <Text style={styles.loginLink}>تسجيل الدخول</Text>
+              <Text style={[styles.loginLink, { color: themeColors.primary }]}>{t('profile.login')}</Text>
             </TouchableOpacity>
-            <Text style={styles.footerText}>لديك حساب بالفعل؟</Text>
+            <Text style={[styles.footerText, { color: themeColors.textSecondary }]}>
+              {language === 'ar' ? 'لديك حساب بالفعل؟' : language === 'fr' ? 'Déjà un compte ?' : 'Already have an account?'}
+            </Text>
           </View>
         </View>
       </ScrollView>

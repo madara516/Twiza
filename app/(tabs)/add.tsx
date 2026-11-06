@@ -31,6 +31,8 @@ import * as Location from 'expo-location';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { FreeMap, FreeMapRef } from '../../src/components/FreeMap';
 import { AppIcon } from '../../src/components/AppIcon';
 import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
@@ -48,6 +50,8 @@ export default function AddScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ presetLat?: string; presetLng?: string; presetTitle?: string }>();
   const { user } = useAuth();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
   const mapRef = useRef<FreeMapRef>(null);
 
   // حقول النموذج
@@ -204,7 +208,7 @@ export default function AddScreen() {
   // إذا لم يكن المستخدم مسجلاً
   if (!user) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
         <GuestLoginPrompt redirectTo="/(tabs)/add" />
       </SafeAreaView>
     );
@@ -224,17 +228,17 @@ export default function AddScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       {/* 1. الترويسة العلوية النظيفة المطابقة لـ Screen 4 */}
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border, borderBottomWidth: 1 }]}>
         <TouchableOpacity
           style={styles.headerBackBtn}
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <AppIcon name="chevron_right" size={20} color="#1B4D3E" />
+          <AppIcon name="chevron_right" size={20} color={themeColors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>إضافة بلاغ أو مكان</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.text }]}>{t('add.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -243,7 +247,7 @@ export default function AddScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* 2. بطاقة إضافة الصورة المطابقة لـ Mockup Screen 4 */}
-        <View style={styles.photoUploadCard}>
+        <View style={[styles.photoUploadCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           {photoUri ? (
             <View style={styles.previewContainer}>
               <Image source={{ uri: photoUri }} style={styles.previewImage} resizeMode="cover" />
@@ -251,30 +255,36 @@ export default function AddScreen() {
                 style={styles.removePhotoBtn}
                 onPress={() => setPhotoUri(null)}
               >
-                <Text style={styles.removePhotoText}>✕ إزالة</Text>
+                <Text style={styles.removePhotoText}>✕ {t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.photoPlaceholder}>
-              <View style={styles.cameraIconCircle}>
-                <AppIcon name="camera" size={32} color="#15803D" />
+              <View style={[styles.cameraIconCircle, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+                <AppIcon name="camera" size={32} color={themeColors.primary} />
               </View>
-              <Text style={styles.addPhotoTitle}>إضافة صورة توضيحية</Text>
-              <Text style={styles.addPhotoSubtitle}>تساعد فرق التدخل والمتطوعين في التوثيق والوصول</Text>
+              <Text style={[styles.addPhotoTitle, { color: themeColors.text }]}>{t('add.add_photo')}</Text>
+              <Text style={[styles.addPhotoSubtitle, { color: themeColors.textSecondary }]}>
+                {t('add.photo_desc')}
+              </Text>
               <View style={styles.photoActionsRow}>
                 <TouchableOpacity
-                  style={styles.photoActionBtn}
+                  style={[styles.photoActionBtn, { backgroundColor: themeColors.primary }]}
                   onPress={handlePickCamera}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.photoActionText}>الكاميرا</Text>
+                  <Text style={[styles.photoActionText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>
+                    {t('add.camera')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.photoActionBtn, styles.photoActionGallery]}
+                  style={[styles.photoActionBtn, styles.photoActionGallery, { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border }]}
                   onPress={handlePickGallery}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.photoActionText, styles.photoActionGalleryText]}>المعرض</Text>
+                  <Text style={[styles.photoActionText, styles.photoActionGalleryText, { color: themeColors.text }]}>
+                    {t('add.gallery')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -282,76 +292,79 @@ export default function AddScreen() {
         </View>
 
         {/* 3. اختيار الفئة (Category) */}
-        <Text style={styles.fieldLabel}>الفئة</Text>
+        <Text style={[styles.fieldLabel, { color: themeColors.text }]}>{t('add.category')}</Text>
         <View style={styles.kindRow}>
           <TouchableOpacity
             style={[
               styles.kindCard,
-              kind === 'bin' && styles.kindCardActive,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+              kind === 'bin' && { borderColor: themeColors.primary, backgroundColor: isDark ? '#143D2D' : '#F0FDF4' },
             ]}
             onPress={() => setKind('bin')}
             activeOpacity={0.8}
           >
-            <AppIcon name="bin" size={24} color={kind === 'bin' ? colors.primary : '#64748B'} />
-            <Text style={[styles.kindLabel, kind === 'bin' && styles.kindLabelActive]}>
-              حاوية نفايات
+            <AppIcon name="bin" size={24} color={kind === 'bin' ? themeColors.primary : themeColors.textMuted} />
+            <Text style={[styles.kindLabel, { color: kind === 'bin' ? themeColors.primary : themeColors.textSecondary }]}>
+              {t('kinds.bin')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.kindCard,
-              kind === 'collection_point' && styles.kindCardActive,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+              kind === 'collection_point' && { borderColor: themeColors.primary, backgroundColor: isDark ? '#143D2D' : '#F0FDF4' },
             ]}
             onPress={() => setKind('collection_point')}
             activeOpacity={0.8}
           >
-            <AppIcon name="collection_point" size={24} color={kind === 'collection_point' ? colors.primary : '#64748B'} />
-            <Text style={[styles.kindLabel, kind === 'collection_point' && styles.kindLabelActive]}>
-              نقطة تجميع
+            <AppIcon name="collection_point" size={24} color={kind === 'collection_point' ? themeColors.primary : themeColors.textMuted} />
+            <Text style={[styles.kindLabel, { color: kind === 'collection_point' ? themeColors.primary : themeColors.textSecondary }]}>
+              {t('kinds.collection_point')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.kindCard,
-              kind === 'wild_dump' && styles.kindCardActiveDanger,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+              kind === 'wild_dump' && { borderColor: '#EF4444', backgroundColor: isDark ? '#3D1414' : '#FEF2F2' },
             ]}
             onPress={() => setKind('wild_dump')}
             activeOpacity={0.8}
           >
-            <AppIcon name="wild_dump" size={24} color={kind === 'wild_dump' ? '#DC2626' : '#64748B'} />
-            <Text style={[styles.kindLabel, kind === 'wild_dump' && styles.kindLabelActiveDanger]}>
-              نقطة سوداء
+            <AppIcon name="wild_dump" size={24} color={kind === 'wild_dump' ? '#EF4444' : themeColors.textMuted} />
+            <Text style={[styles.kindLabel, { color: kind === 'wild_dump' ? '#EF4444' : themeColors.textSecondary }]}>
+              {t('kinds.wild_dump')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* 4. الموقع الجغرافي (Location) */}
         <View style={styles.locationHeaderRow}>
-          <Text style={styles.fieldLabel}>الموقع</Text>
+          <Text style={[styles.fieldLabel, { color: themeColors.text }]}>{t('add.location')}</Text>
           <TouchableOpacity
-            style={styles.gpsSmallBtn}
+            style={[styles.gpsSmallBtn, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}
             onPress={handleGetCurrentLocation}
             disabled={isLocating}
             activeOpacity={0.8}
           >
             {isLocating ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={themeColors.primary} />
             ) : (
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
-                <AppIcon name="gps" size={14} color={colors.primary} />
-                <Text style={styles.gpsSmallBtnText}>تحديد موقعي الحالي</Text>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="gps" size={14} color={themeColors.primary} />
+                <Text style={[styles.gpsSmallBtnText, { color: themeColors.primary }]}>{t('add.gps_detect')}</Text>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
-        <View style={styles.locationCard}>
-          <View style={styles.locationInfoRow}>
-            <AppIcon name="pin" size={16} color={colors.primary} />
-            <Text style={styles.locationNeighborhoodText}>
-              حي {getApproximateNeighborhood(location.latitude, location.longitude)} (الأغواط)
+        <View style={[styles.locationCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <View style={[styles.locationInfoRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
+            <AppIcon name="pin" size={16} color={themeColors.primary} />
+            <Text style={[styles.locationNeighborhoodText, { color: themeColors.text }]}>
+              {getApproximateNeighborhood(location.latitude, location.longitude)} ({t('pilot_city')})
             </Text>
           </View>
           <View style={styles.miniMapWrapper}>
@@ -364,7 +377,7 @@ export default function AddScreen() {
               zoom={15}
             />
           </View>
-          <Text style={styles.coordsText}>
+          <Text style={[styles.coordsText, { color: themeColors.textSecondary }]}>
             {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
           </Text>
         </View>
@@ -372,54 +385,80 @@ export default function AddScreen() {
         {/* حقول إضافية للنقاط السوداء */}
         {kind === 'wild_dump' && (
           <View style={styles.dynamicSection}>
-            <Text style={styles.fieldLabel}>درجة الخطورة</Text>
+            <Text style={[styles.fieldLabel, { color: themeColors.text }]}>{t('add.severity')}</Text>
             <View style={styles.severityRow}>
               <TouchableOpacity
-                style={[styles.severityBtn, severity === 'small' && styles.severityBtnActive]}
+                style={[
+                  styles.severityBtn,
+                  { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+                  severity === 'small' && { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
+                ]}
                 onPress={() => setSeverity('small')}
               >
-                <Text style={[styles.severityText, severity === 'small' && styles.severityTextActive]}>بسيطة</Text>
+                <Text style={[styles.severityText, { color: severity === 'small' ? (isDark ? '#061C12' : '#FFFFFF') : themeColors.textSecondary }]}>
+                  {t('add.severity_small')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.severityBtn, severity === 'medium' && styles.severityBtnActive]}
+                style={[
+                  styles.severityBtn,
+                  { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+                  severity === 'medium' && { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
+                ]}
                 onPress={() => setSeverity('medium')}
               >
-                <Text style={[styles.severityText, severity === 'medium' && styles.severityTextActive]}>متوسطة</Text>
+                <Text style={[styles.severityText, { color: severity === 'medium' ? '#FFFFFF' : themeColors.textSecondary }]}>
+                  {t('add.severity_medium')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.severityBtn, severity === 'large' && styles.severityBtnActiveDanger]}
+                style={[
+                  styles.severityBtn,
+                  { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+                  severity === 'large' && { backgroundColor: '#EF4444', borderColor: '#EF4444' },
+                ]}
                 onPress={() => setSeverity('large')}
               >
-                <Text style={[styles.severityText, severity === 'large' && styles.severityTextActiveDanger]}>حرجة / كبيرة</Text>
+                <Text style={[styles.severityText, { color: severity === 'large' ? '#FFFFFF' : themeColors.textSecondary }]}>
+                  {t('add.severity_large')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
         {/* 5. الوصف والملاحظات (Description) */}
-        <Text style={styles.fieldLabel}>الوصف والملاحظات</Text>
+        <Text style={[styles.fieldLabel, { color: themeColors.text }]}>{t('add.notes')}</Text>
         <TextInput
-          style={[styles.textInput, styles.textArea]}
-          placeholder="اكتب تفاصيل إضافية تساعد في الوصول وتحديد المشكلة..."
-          placeholderTextColor="#9CA3AF"
+          style={[
+            styles.textInput,
+            styles.textArea,
+            {
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+              color: themeColors.text,
+              textAlign: isRTL ? 'right' : 'left',
+            },
+          ]}
+          placeholder={t('add.notes_placeholder')}
+          placeholderTextColor={themeColors.textMuted}
           value={notes}
           onChangeText={setNotes}
           multiline
           numberOfLines={3}
-          textAlign="right"
         />
 
         {/* زر الإرسال الرئيسي المطابق لـ Mockup Screen 4 */}
         <TouchableOpacity
-          style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
+          style={[styles.submitBtn, { backgroundColor: themeColors.primary }, isSubmitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           disabled={isSubmitting}
           activeOpacity={0.88}
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={isDark ? '#061C12' : '#FFF'} />
           ) : (
-            <Text style={styles.submitBtnText}>Send Report</Text>
+            <Text style={[styles.submitBtnText, { color: isDark ? '#061C12' : '#FFF' }]}>{t('add.submit')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

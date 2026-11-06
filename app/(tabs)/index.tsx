@@ -32,8 +32,8 @@ import { GuestLoginPrompt } from '../../src/components/GuestLoginPrompt';
 export default function HomeScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
-  const { colors: activeColors } = useTheme();
-  const { t } = useLanguage();
+  const { colors: activeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
 
   if (!user) {
     return (
@@ -46,108 +46,142 @@ export default function HomeScreen() {
   const userName = profile?.displayName || user?.displayName || user?.email?.split('@')[0] || '';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: activeColors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* 1. الترويسة والترحيب + صورة الملف الشخصي */}
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
           <TouchableOpacity
             style={styles.avatarBtn}
             onPress={() => router.push('/(tabs)/profile')}
             activeOpacity={0.8}
           >
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatarCircle, { backgroundColor: activeColors.primary }]}>
+              <Text style={[styles.avatarText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>
                 {userName.charAt(0).toUpperCase()}
               </Text>
             </View>
           </TouchableOpacity>
 
-          <View style={styles.greetingContainer}>
-            <Text style={styles.greetingTitle}>
-              صباح الخير، {userName}
+          <View style={[styles.greetingContainer, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+            <Text style={[styles.greetingTitle, { color: activeColors.text }]}>
+              {t('home.greeting')}، {userName}
             </Text>
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 5, marginTop: 2 }}>
-              <AppIcon name="leaf" size={13} color="#15803D" />
-              <Text style={styles.greetingSubtitle}>
-                معاً لنجعل الأغواط أنقى وأجمل!
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <AppIcon name="leaf" size={13} color={activeColors.primary} />
+              <Text style={[styles.greetingSubtitle, { color: activeColors.textSecondary }]}>
+                {t('home.motto')}
               </Text>
             </View>
           </View>
         </View>
 
         {/* 2. بطاقة رتبة المواطن والأثر الشهري (Citizen Score Card) */}
-        <View style={styles.citizenCard}>
-          <View style={styles.citizenCardHeader}>
-            <View style={styles.impactProgressBadge}>
-              <Text style={styles.impactProgressText}>4/5</Text>
+        <View
+          style={[
+            styles.citizenCard,
+            {
+              backgroundColor: isDark ? activeColors.surface : '#EAF4ED',
+              borderColor: isDark ? activeColors.border : '#D7E9DC',
+            },
+          ]}
+        >
+          <View style={[styles.citizenCardHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.impactProgressBadge, { backgroundColor: isDark ? activeColors.surfaceAlt : '#FFFFFF' }]}>
+              <Text style={[styles.impactProgressText, { color: activeColors.primary }]}>4/5</Text>
             </View>
-            <View style={styles.citizenBadgeRow}>
-              <Text style={styles.citizenRank}>مواطن مساهم ★ 5</Text>
-              <Text style={styles.citizenRankSub}>أثرك البيئي هذا الشهر</Text>
+            <View style={[styles.citizenBadgeRow, { alignItems: isRTL ? 'flex-end' : 'flex-start' }]}>
+              <Text style={[styles.citizenRank, { color: isDark ? activeColors.text : '#1B5E34' }]}>
+                {t('home.citizen_rank')}
+              </Text>
+              <Text style={[styles.citizenRankSub, { color: isDark ? activeColors.textSecondary : '#4B7764' }]}>
+                {t('home.impact_month')}
+              </Text>
             </View>
           </View>
 
           {/* شريط التقدم الأخضر */}
-          <View style={styles.progressBarTrack}>
-            <View style={styles.progressBarFill} />
+          <View style={[styles.progressBarTrack, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255, 255, 255, 0.7)' }]}>
+            <View style={[styles.progressBarFill, { backgroundColor: activeColors.primary }]} />
           </View>
 
           {/* أعمدة الإحصائيات الأربعة */}
           <View style={styles.statsRow}>
             <View style={styles.statColumn}>
-              <Text style={styles.statValue}>12 سا</Text>
-              <Text style={styles.statLabel}>تطوع</Text>
+              <Text style={[styles.statValue, { color: isDark ? activeColors.primary : '#1B5E34' }]}>
+                12 {language === 'ar' ? 'سا' : 'h'}
+              </Text>
+              <Text style={[styles.statLabel, { color: isDark ? activeColors.textSecondary : '#4B7764' }]}>
+                {t('home.stat_volunteering')}
+              </Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: isDark ? activeColors.border : '#C5DEC8' }]} />
             <View style={styles.statColumn}>
-              <Text style={styles.statValue}>8</Text>
-              <Text style={styles.statLabel}>حملات</Text>
+              <Text style={[styles.statValue, { color: isDark ? activeColors.primary : '#1B5E34' }]}>8</Text>
+              <Text style={[styles.statLabel, { color: isDark ? activeColors.textSecondary : '#4B7764' }]}>
+                {t('home.stat_twizas')}
+              </Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: isDark ? activeColors.border : '#C5DEC8' }]} />
             <View style={styles.statColumn}>
-              <Text style={styles.statValue}>3</Text>
-              <Text style={styles.statLabel}>بلاغات</Text>
+              <Text style={[styles.statValue, { color: isDark ? activeColors.primary : '#1B5E34' }]}>3</Text>
+              <Text style={[styles.statLabel, { color: isDark ? activeColors.textSecondary : '#4B7764' }]}>
+                {t('home.stat_reports')}
+              </Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: isDark ? activeColors.border : '#C5DEC8' }]} />
             <View style={styles.statColumn}>
-              <Text style={styles.statValue}>#3</Text>
-              <Text style={styles.statLabel}>في الحي</Text>
+              <Text style={[styles.statValue, { color: isDark ? activeColors.primary : '#1B5E34' }]}>#3</Text>
+              <Text style={[styles.statLabel, { color: isDark ? activeColors.textSecondary : '#4B7764' }]}>
+                {t('home.stat_district')}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* 3. بطاقة رسم الأثر البيئي (Your Impact Graph) */}
-        <View style={styles.impactCard}>
-          <View style={styles.sectionHeaderRow}>
+        <View style={[styles.impactCard, { backgroundColor: activeColors.surface, borderColor: activeColors.border }]}>
+          <View style={[styles.sectionHeaderRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-              <Text style={styles.viewDetailsText}>عرض التفاصيل ←</Text>
+              <Text style={[styles.viewDetailsText, { color: activeColors.primary }]}>
+                {t('home.view_details')}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.sectionTitle}>أثر مساهماتك</Text>
+            <Text style={[styles.sectionTitle, { color: activeColors.text }]}>
+              {t('home.impact_title')}
+            </Text>
           </View>
 
           {/* محاكاة الرسم البياني الأخضر الانسيابي */}
           <View style={styles.chartWrapper}>
-            <View style={styles.chartLineContainer}>
-              <View style={[styles.chartNode, { left: '10%', bottom: '25%' }]} />
-              <View style={[styles.chartNode, { left: '35%', bottom: '40%' }]} />
-              <View style={[styles.chartNode, { left: '65%', bottom: '70%' }]} />
-              <View style={[styles.chartNode, { left: '90%', bottom: '55%' }]} />
-              <View style={styles.chartCurveLine} />
+            <View style={[styles.chartLineContainer, { borderBottomColor: isDark ? activeColors.border : '#F3F4F6' }]}>
+              <View style={[styles.chartNode, { left: '10%', bottom: '25%', backgroundColor: activeColors.primary }]} />
+              <View style={[styles.chartNode, { left: '35%', bottom: '40%', backgroundColor: activeColors.primary }]} />
+              <View style={[styles.chartNode, { left: '65%', bottom: '70%', backgroundColor: activeColors.primary }]} />
+              <View style={[styles.chartNode, { left: '90%', bottom: '55%', backgroundColor: activeColors.primary }]} />
+              <View style={[styles.chartCurveLine, { backgroundColor: isDark ? activeColors.primary : '#86EFAC' }]} />
             </View>
             <View style={styles.chartMonthsRow}>
-              <Text style={styles.monthText}>سبتمبر</Text>
-              <Text style={styles.monthText}>أكتوبر</Text>
-              <Text style={styles.monthText}>نوفمبر</Text>
-              <Text style={styles.monthText}>ديسمبر</Text>
+              <Text style={[styles.monthText, { color: activeColors.textMuted }]}>
+                {language === 'ar' ? 'سبتمبر' : language === 'fr' ? 'Sep' : 'Sep'}
+              </Text>
+              <Text style={[styles.monthText, { color: activeColors.textMuted }]}>
+                {language === 'ar' ? 'أكتوبر' : language === 'fr' ? 'Oct' : 'Oct'}
+              </Text>
+              <Text style={[styles.monthText, { color: activeColors.textMuted }]}>
+                {language === 'ar' ? 'نوفمبر' : language === 'fr' ? 'Nov' : 'Nov'}
+              </Text>
+              <Text style={[styles.monthText, { color: activeColors.textMuted }]}>
+                {language === 'ar' ? 'ديسمبر' : language === 'fr' ? 'Déc' : 'Dec'}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* 4. بطاقة الفعالية القادمة للتويزة (Next Twiza Event Card) */}
-        <View style={styles.eventCard}>
+        <View style={[styles.eventCard, { backgroundColor: activeColors.surface, borderColor: activeColors.border }]}>
           <View style={styles.eventImagePlaceholder}>
             <Image
               source={require('../../assets/icons/extracted/img_laghouat_oasis.png')}
@@ -157,29 +191,39 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.eventInfo}>
-            <View style={styles.eventHeaderRow}>
+            <View style={[styles.eventHeaderRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
               <TouchableOpacity
-                style={styles.joinBtn}
+                style={[styles.joinBtn, { backgroundColor: activeColors.primary }]}
                 onPress={() => router.push('/(tabs)/chat')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.joinBtnText}>انضمام</Text>
+                <Text style={[styles.joinBtnText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>
+                  {t('home.join')}
+                </Text>
               </TouchableOpacity>
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={styles.eventTitle}>فعالية التويزة القادمة</Text>
-                <Text style={styles.eventSubtitle}>تنظيف وتجميل المدينة القديمة</Text>
+              <View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}>
+                <Text style={[styles.eventTitle, { color: activeColors.textSecondary }]}>
+                  {t('home.next_event')}
+                </Text>
+                <Text style={[styles.eventSubtitle, { color: activeColors.text }]}>
+                  {t('home.next_event_title')}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.eventMetaRow}>
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
-                <AppIcon name="people" size={13} color="#6B7280" />
-                <Text style={styles.eventMetaText}>12 متطوع</Text>
+            <View style={[styles.eventMetaRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="people" size={13} color={activeColors.textMuted} />
+                <Text style={[styles.eventMetaText, { color: activeColors.textSecondary }]}>
+                  12 {t('home.volunteers')}
+                </Text>
               </View>
-              <Text style={styles.eventMetaDot}>•</Text>
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
-                <AppIcon name="pin" size={13} color="#6B7280" />
-                <Text style={styles.eventMetaText}>نهج المقاومة الرئيسي</Text>
+              <Text style={[styles.eventMetaDot, { color: activeColors.textMuted }]}>•</Text>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 4 }}>
+                <AppIcon name="pin" size={13} color={activeColors.textMuted} />
+                <Text style={[styles.eventMetaText, { color: activeColors.textSecondary }]}>
+                  {t('home.location_demo')}
+                </Text>
               </View>
             </View>
           </View>
@@ -188,27 +232,35 @@ export default function HomeScreen() {
         {/* 5. بطاقات الوصول السريع للخريطة والشات */}
         <View style={styles.quickActionsGrid}>
           <TouchableOpacity
-            style={styles.quickCard}
+            style={[styles.quickCard, { backgroundColor: activeColors.surface, borderColor: activeColors.border }]}
             onPress={() => router.push('/(tabs)/map')}
             activeOpacity={0.85}
           >
-            <View style={styles.quickIconCircle}>
-              <AppIcon name="bin" size={20} color={colors.primary} />
+            <View style={[styles.quickIconCircle, { backgroundColor: isDark ? activeColors.surfaceAlt : '#EAF4ED' }]}>
+              <AppIcon name="bin" size={20} color={activeColors.primary} />
             </View>
-            <Text style={styles.quickCardTitle}>أقرب الحاويات</Text>
-            <Text style={styles.quickCardSubtitle}>12 حاوية قريبة منك ←</Text>
+            <Text style={[styles.quickCardTitle, { color: activeColors.text }]}>
+              {t('home.nearby_bins')}
+            </Text>
+            <Text style={[styles.quickCardSubtitle, { color: activeColors.textSecondary }]}>
+              {t('home.bins_count')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.quickCard}
+            style={[styles.quickCard, { backgroundColor: activeColors.surface, borderColor: activeColors.border }]}
             onPress={() => router.push('/(tabs)/add')}
             activeOpacity={0.85}
           >
-            <View style={[styles.quickIconCircle, { backgroundColor: '#E8F5E9' }]}>
-              <AppIcon name="camera" size={20} color={colors.primary} />
+            <View style={[styles.quickIconCircle, { backgroundColor: isDark ? activeColors.surfaceAlt : '#E8F5E9' }]}>
+              <AppIcon name="camera" size={20} color={activeColors.primary} />
             </View>
-            <Text style={styles.quickCardTitle}>إضافة بلاغ</Text>
-            <Text style={styles.quickCardSubtitle}>ساهم في نظافة الأغواط ←</Text>
+            <Text style={[styles.quickCardTitle, { color: activeColors.text }]}>
+              {t('home.add_report')}
+            </Text>
+            <Text style={[styles.quickCardSubtitle, { color: activeColors.textSecondary }]}>
+              {t('home.clean_action')}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

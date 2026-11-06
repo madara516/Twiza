@@ -39,6 +39,8 @@ import {
 } from '../../src/constants/regions';
 import { Neighborhood } from '../../src/constants/laghouat';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { usePlaces } from '../../src/hooks/usePlaces';
 import { Place, PlaceKind, GeoLocation } from '../../src/types';
 import { PlaceWithDistance } from '../../src/utils/haversine';
@@ -49,6 +51,8 @@ import { AppIcon } from '../../src/components/AppIcon';
 export default function MapScreen() {
   const router = useRouter();
   const { user, role, logout, setGuestMode } = useAuth();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
   const mapRef = useRef<FreeMapRef>(null);
 
   const [userLocation, setUserLocation] = useState<GeoLocation | null>(null);
@@ -262,11 +266,12 @@ export default function MapScreen() {
         </View>
 
         {/* شريط الفلاتر العلوي الأنيق المطابق للتصميم */}
-        <View style={styles.filterContainer}>
+        <View style={[styles.filterContainer, { backgroundColor: isDark ? 'rgba(7, 24, 17, 0.95)' : 'rgba(255, 255, 255, 0.95)' }]}>
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'all' && styles.filterChipActive,
+              { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+              selectedFilter === 'all' && { backgroundColor: themeColors.primary, borderColor: themeColors.primary },
             ]}
             onPress={() => setSelectedFilter('all')}
             activeOpacity={0.8}
@@ -274,67 +279,70 @@ export default function MapScreen() {
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'all' && styles.filterTextActive,
+                { color: selectedFilter === 'all' ? (isDark ? '#061C12' : '#FFFFFF') : themeColors.textSecondary },
               ]}
             >
-              الكل ({places.length})
+              {t('map.all_types')} ({places.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'bin' && styles.filterChipActiveGreen,
+              { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+              selectedFilter === 'bin' && { backgroundColor: isDark ? '#143D2D' : '#E8F5E9', borderColor: themeColors.primary },
             ]}
             onPress={() => setSelectedFilter('bin')}
             activeOpacity={0.8}
           >
-            <View style={[styles.filterDot, { backgroundColor: colors.kind.bin }]} />
+            <View style={[styles.filterDot, { backgroundColor: themeColors.kind.bin }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'bin' && styles.filterTextActiveColored,
+                { color: selectedFilter === 'bin' ? themeColors.primary : themeColors.textSecondary },
               ]}
             >
-              سلات
+              {t('map.filter_bins')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'collection_point' && styles.filterChipActiveForest,
+              { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+              selectedFilter === 'collection_point' && { backgroundColor: isDark ? '#143D2D' : '#EFF6FF', borderColor: '#3B82F6' },
             ]}
             onPress={() => setSelectedFilter('collection_point')}
             activeOpacity={0.8}
           >
-            <View style={[styles.filterDot, { backgroundColor: colors.kind.collection_point }]} />
+            <View style={[styles.filterDot, { backgroundColor: themeColors.kind.collection_point }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'collection_point' && styles.filterTextActiveColored,
+                { color: selectedFilter === 'collection_point' ? (isDark ? '#60A5FA' : '#1D4ED8') : themeColors.textSecondary },
               ]}
             >
-              نقاط تجميع
+              {t('map.filter_points')}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               styles.filterChip,
-              selectedFilter === 'wild_dump' && styles.filterChipActiveRed,
+              { backgroundColor: themeColors.surfaceAlt, borderColor: themeColors.border },
+              selectedFilter === 'wild_dump' && { backgroundColor: isDark ? '#3D1414' : '#FEF2F2', borderColor: '#EF4444' },
             ]}
             onPress={() => setSelectedFilter('wild_dump')}
             activeOpacity={0.8}
           >
-            <View style={[styles.filterDot, { backgroundColor: colors.kind.wild_dump }]} />
+            <View style={[styles.filterDot, { backgroundColor: themeColors.kind.wild_dump }]} />
             <Text
               style={[
                 styles.filterText,
-                selectedFilter === 'wild_dump' && styles.filterTextActiveColored,
+                { color: selectedFilter === 'wild_dump' ? '#EF4444' : themeColors.textSecondary },
               ]}
             >
-              نقاط سوداء
+              {t('map.filter_dumps')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -353,40 +361,40 @@ export default function MapScreen() {
         <View style={styles.fabColumnRight}>
           {/* زر التمركز وإعادة التوجيه GPS */}
           <TouchableOpacity
-            style={styles.mapToolBtn}
+            style={[styles.mapToolBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
             onPress={handleGetCurrentLocation}
             activeOpacity={0.85}
           >
             {isLocating ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={themeColors.primary} />
             ) : (
-              <AppIcon name="gps" size={20} color={colors.primary} />
+              <AppIcon name="gps" size={20} color={themeColors.primary} />
             )}
           </TouchableOpacity>
 
           {/* زر توجيه البوصلة / استعراض الأغواط كاملة */}
           <TouchableOpacity
-            style={styles.mapToolBtn}
+            style={[styles.mapToolBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
             onPress={() => {
               mapRef.current?.flyTo(ACTIVE_REGION.center.latitude, ACTIVE_REGION.center.longitude, 14);
             }}
             activeOpacity={0.85}
           >
-            <AppIcon name="compass" size={20} color={colors.primary} />
+            <AppIcon name="compass" size={20} color={themeColors.primary} />
           </TouchableOpacity>
 
           {/* زر طلب حاوية في الحي */}
           <TouchableOpacity
-            style={styles.mapToolBtn}
+            style={[styles.mapToolBtn, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
             onPress={handleNeedBinPress}
             activeOpacity={0.85}
           >
-            <AppIcon name="bin" size={20} color={colors.primary} />
+            <AppIcon name="bin" size={20} color={themeColors.primary} />
           </TouchableOpacity>
 
           {/* زر تسجيل الخروج والعودة لشاشة البداية */}
           <TouchableOpacity
-            style={[styles.mapToolBtn, styles.mapToolLogoutBtn]}
+            style={[styles.mapToolBtn, styles.mapToolLogoutBtn, { backgroundColor: isDark ? '#2E1515' : '#FEF2F2', borderColor: '#FCA5A5' }]}
             onPress={async () => {
               try {
                 await logout();
@@ -417,8 +425,8 @@ export default function MapScreen() {
 
         {/* حالة الخريطة الفارغة (Empty State) */}
         {filteredPlaces.length === 0 && !loading ? (
-          <View style={styles.emptyNotice}>
-            <Text style={styles.emptyText}>
+          <View style={[styles.emptyNotice, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+            <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>
               لا توجد أماكن مسجلة في هذا التصنيف حالياً.
             </Text>
           </View>
@@ -427,7 +435,7 @@ export default function MapScreen() {
         {/* بطاقة "Nearby Bins" العائمة المطابقة لـ Screen 6 في الموك آب */}
         {!selectedPlace ? (
           <TouchableOpacity
-            style={styles.nearbyBinsCard}
+            style={[styles.nearbyBinsCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}
             onPress={() => {
               if (!userLocation) {
                 handleGetCurrentLocation();
@@ -436,39 +444,39 @@ export default function MapScreen() {
             }}
             activeOpacity={0.9}
           >
-            <View style={styles.nearbyChevronCircle}>
-              <Text style={styles.nearbyChevron}>›</Text>
+            <View style={[styles.nearbyChevronCircle, { backgroundColor: isDark ? themeColors.surfaceAlt : '#F3F4F6' }]}>
+              <Text style={[styles.nearbyChevron, { color: themeColors.textSecondary }]}>›</Text>
             </View>
             <View style={styles.nearbyTextContainer}>
-              <Text style={styles.nearbyTitle}>Nearby Bins</Text>
-              <Text style={styles.nearbySubtitle}>
-                {filteredPlaces.length > 0 ? `${filteredPlaces.length} bins found nearby` : 'Searching for nearby bins...'}
+              <Text style={[styles.nearbyTitle, { color: themeColors.text }]}>{t('map.nearest_bin')}</Text>
+              <Text style={[styles.nearbySubtitle, { color: themeColors.textSecondary }]}>
+                {filteredPlaces.length > 0 ? `${filteredPlaces.length} ${t('map.bins_nearby')}` : t('common.loading')}
               </Text>
             </View>
-            <View style={styles.nearbyIconBox}>
-              <AppIcon name="bin" size={22} color={colors.primary} />
+            <View style={[styles.nearbyIconBox, { backgroundColor: isDark ? '#143D2D' : '#EAF4ED' }]}>
+              <AppIcon name="bin" size={22} color={themeColors.primary} />
             </View>
           </TouchableOpacity>
         ) : null}
 
         {/* بطاقة تفاصيل المكان المنبثقة */}
         {selectedPlace ? (
-          <View style={styles.placeCard}>
+          <View style={[styles.placeCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <View style={styles.placeCardHeader}>
               <TouchableOpacity
-                style={styles.closeBtn}
+                style={[styles.closeBtn, { backgroundColor: themeColors.surfaceAlt }]}
                 onPress={() => setSelectedPlace(null)}
               >
-                <Text style={styles.closeBtnText}>✕</Text>
+                <Text style={[styles.closeBtnText, { color: themeColors.textSecondary }]}>✕</Text>
               </TouchableOpacity>
               <View style={styles.placeTitleBox}>
-                <Text style={styles.placeTitle}>
-                  {selectedPlace.kind === 'bin' && 'سلة نفايات فردية 🟢'}
-                  {selectedPlace.kind === 'collection_point' && 'نقطة تجميع رئيسية 🌲'}
-                  {selectedPlace.kind === 'wild_dump' && 'نقطة سوداء (مكب فوضوي) 🔴'}
+                <Text style={[styles.placeTitle, { color: themeColors.text }]}>
+                  {selectedPlace.kind === 'bin' && t('kinds.bin')}
+                  {selectedPlace.kind === 'collection_point' && t('kinds.collection_point')}
+                  {selectedPlace.kind === 'wild_dump' && t('kinds.wild_dump')}
                 </Text>
-                <Text style={styles.placeNeighborhood}>
-                  حي: {selectedPlace.neighborhood}
+                <Text style={[styles.placeNeighborhood, { color: themeColors.textSecondary }]}>
+                  {selectedPlace.neighborhood}
                 </Text>
               </View>
             </View>

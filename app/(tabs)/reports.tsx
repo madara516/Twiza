@@ -33,6 +33,8 @@ import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { PlaceReport, ReportType, ReportStatus, Place } from '../../src/types';
 import { ReportService } from '../../src/services/reportService';
 import { PlaceService } from '../../src/services/placeService';
@@ -62,6 +64,8 @@ interface UnifiedTrackingItem {
 export default function ReportsScreen() {
   const router = useRouter();
   const { user, logout, setGuestMode } = useAuth();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
 
   const [reports, setReports] = useState<PlaceReport[]>([]);
   const [myPlaces, setMyPlaces] = useState<Place[]>([]);
@@ -226,16 +230,16 @@ export default function ReportsScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
         <GuestLoginPrompt redirectTo="/(tabs)/reports" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       {/* 1. الترويسة العلوية الخضراء الداكنة المطابقة لـ Screen 3 */}
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { backgroundColor: isDark ? '#0D2B1D' : '#1B4D3E' }]}>
         <TouchableOpacity
           style={styles.headerBackBtn}
           onPress={() => router.back()}
@@ -243,7 +247,7 @@ export default function ReportsScreen() {
         >
           <AppIcon name="chevron_right" size={20} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>بلاغاتي</Text>
+        <Text style={styles.headerTitle}>{t('reports.title')}</Text>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
             style={styles.headerAddBtn}
@@ -256,40 +260,52 @@ export default function ReportsScreen() {
       </View>
 
       {/* 2. شريط فلاتر الحالات المطابق تماماً لـ Screen 3 في الموك آب */}
-      <View style={styles.statusPillsRow}>
+      <View style={[styles.statusPillsRow, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity
-          style={[styles.statusPill, statusFilter === 'all' && styles.statusPillActive]}
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusFilter === 'all' ? themeColors.primary : themeColors.surfaceAlt, borderColor: themeColors.border },
+          ]}
           onPress={() => setStatusFilter('all')}
         >
-          <Text style={[styles.statusPillText, statusFilter === 'all' && styles.statusPillTextActive]}>
-            الكل ({unifiedItems.length})
+          <Text style={[styles.statusPillText, { color: statusFilter === 'all' ? (isDark ? '#061C12' : '#FFFFFF') : themeColors.textSecondary }]}>
+            {t('reports.filter_all')} ({unifiedItems.length})
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statusPill, statusFilter === 'processing' && styles.statusPillActiveBlue]}
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusFilter === 'processing' ? (isDark ? '#1E3A5F' : '#EFF6FF') : themeColors.surfaceAlt, borderColor: themeColors.border },
+          ]}
           onPress={() => setStatusFilter('processing')}
         >
-          <Text style={[styles.statusPillText, statusFilter === 'processing' && styles.statusPillTextActiveBlue]}>
-            قيد المعالجة
+          <Text style={[styles.statusPillText, { color: statusFilter === 'processing' ? '#3B82F6' : themeColors.textSecondary }]}>
+            {t('reports.filter_processing')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statusPill, statusFilter === 'in_progress' && styles.statusPillActiveAmber]}
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusFilter === 'in_progress' ? (isDark ? '#4A3311' : '#FEF3C7') : themeColors.surfaceAlt, borderColor: themeColors.border },
+          ]}
           onPress={() => setStatusFilter('in_progress')}
         >
-          <Text style={[styles.statusPillText, statusFilter === 'in_progress' && styles.statusPillTextActiveAmber]}>
-            قيد التدخل
+          <Text style={[styles.statusPillText, { color: statusFilter === 'in_progress' ? '#F59E0B' : themeColors.textSecondary }]}>
+            {t('reports.filter_in_progress')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.statusPill, statusFilter === 'solved' && styles.statusPillActiveGreen]}
+          style={[
+            styles.statusPill,
+            { backgroundColor: statusFilter === 'solved' ? (isDark ? '#143D2D' : '#E8F5E9') : themeColors.surfaceAlt, borderColor: themeColors.border },
+          ]}
           onPress={() => setStatusFilter('solved')}
         >
-          <Text style={[styles.statusPillText, statusFilter === 'solved' && styles.statusPillTextActiveGreen]}>
-            تم الحل
+          <Text style={[styles.statusPillText, { color: statusFilter === 'solved' ? themeColors.primary : themeColors.textSecondary }]}>
+            {t('reports.filter_solved')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -297,22 +313,24 @@ export default function ReportsScreen() {
       {/* 3. قائمة التتبع والبطاقات */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>جاري تحميل سجل البلاغات...</Text>
+          <ActivityIndicator size="large" color={themeColors.primary} />
+          <Text style={[styles.loadingText, { color: themeColors.textSecondary }]}>{t('common.loading')}</Text>
         </View>
       ) : filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
-          <AppIcon name="reports" size={40} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>لا توجد بلاغات مسجلة حالياً</Text>
-          <Text style={styles.emptyDesc}>
-            إذا لاحظت نقطة نفايات سوداء أو حاوية بحاجة لصيانة في حيك، ساهم في تحسين مدينتنا وأرسل بلاغك الآن.
+          <AppIcon name="reports" size={40} color={themeColors.textMuted} />
+          <Text style={[styles.emptyTitle, { color: themeColors.text }]}>{t('reports.empty_title')}</Text>
+          <Text style={[styles.emptyDesc, { color: themeColors.textSecondary }]}>
+            {t('reports.empty_desc')}
           </Text>
           <TouchableOpacity
-            style={styles.createReportBtn}
+            style={[styles.createReportBtn, { backgroundColor: themeColors.primary }]}
             onPress={() => router.push('/(tabs)/add')}
             activeOpacity={0.85}
           >
-            <Text style={styles.createReportBtnText}>إرسال أول بلاغ</Text>
+            <Text style={[styles.createReportBtnText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>
+              {t('reports.new_report')}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -342,16 +360,16 @@ export default function ReportsScreen() {
             const fixedTime = formatDateTime(item.createdAt + 180000);
 
             return (
-              <View style={styles.trackingCard}>
+              <View style={[styles.trackingCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
                 {/* الجزء العلوي: الصورة والعنوان والإحداثيات وشارة الحالة */}
                 <View style={styles.cardTopRow}>
                   {/* حاوية الصورة أو الأيقونة على اليسار */}
-                  <View style={styles.photoContainer}>
+                  <View style={[styles.photoContainer, { backgroundColor: themeColors.surfaceAlt }]}>
                     {item.photoURL ? (
                       <Image source={{ uri: item.photoURL }} style={styles.thumbnailPhoto} />
                     ) : (
-                      <View style={styles.cameraPlaceholder}>
-                        <AppIcon name="camera" size={24} color="#9CA3AF" />
+                      <View style={[styles.cameraPlaceholder, { backgroundColor: themeColors.surfaceAlt }]}>
+                        <AppIcon name="camera" size={24} color={themeColors.textMuted} />
                       </View>
                     )}
                   </View>
@@ -359,41 +377,43 @@ export default function ReportsScreen() {
                   {/* التفاصيل والمعلومات على اليمين */}
                   <View style={styles.detailsContainer}>
                     <View style={styles.titleRow}>
-                      <Text style={styles.itemTitle}>{item.title}</Text>
+                      <Text style={[styles.itemTitle, { color: themeColors.text }]}>{item.title}</Text>
                     </View>
 
                     <View style={styles.badgeRow}>
-                      <Text style={styles.categoryBadge}>{item.neighborhood}</Text>
+                      <Text style={[styles.categoryBadge, { backgroundColor: themeColors.surfaceAlt, color: themeColors.textSecondary }]}>
+                        {item.neighborhood}
+                      </Text>
                       {/* شارة قيد المراجعة للأماكن أو الحالات المعلقة */}
                       {isPending && (
                         <View style={styles.pendingBadge}>
-                          <Text style={styles.pendingBadgeText}>قيد المراجعة</Text>
+                          <Text style={styles.pendingBadgeText}>{t('statuses.pending')}</Text>
                         </View>
                       )}
                       {item.status === 'received' && (
-                        <View style={[styles.pendingBadge, { backgroundColor: '#EFF6FF' }]}>
-                          <Text style={[styles.pendingBadgeText, { color: '#1D4ED8' }]}>قيد المعالجة الإدارية</Text>
+                        <View style={[styles.pendingBadge, { backgroundColor: isDark ? '#1E3A5F' : '#EFF6FF', borderColor: '#3B82F6' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: '#3B82F6' }]}>{t('statuses.received')}</Text>
                         </View>
                       )}
                       {item.status === 'in_repair' && (
-                        <View style={[styles.pendingBadge, { backgroundColor: '#FEF3C7' }]}>
-                          <Text style={[styles.pendingBadgeText, { color: '#B45309' }]}>فريق التدخل في الميدان</Text>
+                        <View style={[styles.pendingBadge, { backgroundColor: isDark ? '#4A3311' : '#FEF3C7', borderColor: '#F59E0B' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: '#F59E0B' }]}>{t('statuses.in_repair')}</Text>
                         </View>
                       )}
                       {isFixed && (
-                        <View style={styles.fixedBadge}>
-                          <Text style={styles.fixedBadgeText}>معتمد / تم الإصلاح</Text>
+                        <View style={[styles.fixedBadge, { backgroundColor: isDark ? '#143D2D' : '#E8F5E9', borderColor: themeColors.primary }]}>
+                          <Text style={[styles.fixedBadgeText, { color: themeColors.primary }]}>{t('statuses.fixed')}</Text>
                         </View>
                       )}
                       {isRejected && (
                         <View style={styles.rejectedBadge}>
-                          <Text style={styles.rejectedBadgeText}>مرفوض</Text>
+                          <Text style={styles.rejectedBadgeText}>{t('statuses.rejected')}</Text>
                         </View>
                       )}
                       {Boolean(item.confirmationsResolved && item.confirmationsResolved > 0) && (
-                        <View style={[styles.pendingBadge, { backgroundColor: '#DCFCE7' }]}>
-                          <Text style={[styles.pendingBadgeText, { color: '#15803D' }]}>
-                            {item.confirmationsResolved} تأكيدات ميدانية
+                        <View style={[styles.pendingBadge, { backgroundColor: isDark ? '#143D2D' : '#DCFCE7' }]}>
+                          <Text style={[styles.pendingBadgeText, { color: themeColors.primary }]}>
+                            {item.confirmationsResolved} {language === 'ar' ? 'تأكيدات' : 'confirmations'}
                           </Text>
                         </View>
                       )}
@@ -401,15 +421,15 @@ export default function ReportsScreen() {
 
                     {/* الإحداثيات الجغرافية كما في المخطط */}
                     <View style={styles.gpsRow}>
-                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
-                        <AppIcon name="pin" size={11} color="#6B7280" />
-                        <Text style={styles.gpsCoord}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 3 }}>
+                        <AppIcon name="pin" size={11} color={themeColors.textMuted} />
+                        <Text style={[styles.gpsCoord, { color: themeColors.textSecondary }]}>
                           {item.latitude.toFixed(6)}°
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 3 }}>
-                        <AppIcon name="pin" size={11} color="#6B7280" />
-                        <Text style={styles.gpsCoord}>
+                      <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 3 }}>
+                        <AppIcon name="pin" size={11} color={themeColors.textMuted} />
+                        <Text style={[styles.gpsCoord, { color: themeColors.textSecondary }]}>
                           {item.longitude.toFixed(6)}°
                         </Text>
                       </View>
@@ -418,86 +438,87 @@ export default function ReportsScreen() {
                 </View>
 
                 {/* فاصل ناعم */}
-                <View style={styles.cardDivider} />
+                <View style={[styles.cardDivider, { backgroundColor: themeColors.border }]} />
 
                 {/* متتبع المسار الرأسي المكون من 4 خطوات (Vertical 4-Step Tracker) */}
                 <View style={styles.trackerContainer}>
                   {/* خطوة 1: أرسل */}
-                  <View style={styles.stepRow}>
+                  <View style={[styles.stepRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                     <View style={styles.stepTimelineCol}>
-                      <View style={[styles.stepCircle, currentStep >= 1 && styles.stepCircleActive]}>
-                        <Text style={styles.stepCircleText}>1</Text>
+                      <View style={[styles.stepCircle, currentStep >= 1 && { backgroundColor: themeColors.primary }]}>
+                        <Text style={[styles.stepCircleText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>1</Text>
                       </View>
-                      <View style={[styles.stepVerticalLine, currentStep > 1 && styles.stepLineActive]} />
+                      <View style={[styles.stepVerticalLine, { backgroundColor: themeColors.border }, currentStep > 1 && { backgroundColor: themeColors.primary }]} />
                     </View>
-                    <View style={styles.stepInfoRow}>
-                      <Text style={[styles.stepLabel, currentStep >= 1 && styles.stepLabelActive]}>
-                        أرسل
+                    <View style={[styles.stepInfoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                      <Text style={[styles.stepLabel, { color: currentStep >= 1 ? themeColors.text : themeColors.textMuted }]}>
+                        {t('reports.step_sent')}
                       </Text>
-                      <Text style={styles.stepTimestamp}>{createdTime}</Text>
+                      <Text style={[styles.stepTimestamp, { color: themeColors.textMuted }]}>{createdTime}</Text>
                     </View>
                   </View>
 
                   {/* خطوة 2: استلم */}
-                  <View style={styles.stepRow}>
+                  <View style={[styles.stepRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                     <View style={styles.stepTimelineCol}>
-                      <View style={[styles.stepCircle, currentStep >= 2 && styles.stepCircleActive]}>
-                        <Text style={styles.stepCircleText}>2</Text>
+                      <View style={[styles.stepCircle, currentStep >= 2 && { backgroundColor: themeColors.primary }]}>
+                        <Text style={[styles.stepCircleText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>2</Text>
                       </View>
-                      <View style={[styles.stepVerticalLine, currentStep > 2 && styles.stepLineActive]} />
+                      <View style={[styles.stepVerticalLine, { backgroundColor: themeColors.border }, currentStep > 2 && { backgroundColor: themeColors.primary }]} />
                     </View>
-                    <View style={styles.stepInfoRow}>
-                      <Text style={[styles.stepLabel, currentStep >= 2 && styles.stepLabelActive]}>
-                        تم الاستلام (قيد المعالجة الإدارية)
+                    <View style={[styles.stepInfoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                      <Text style={[styles.stepLabel, { color: currentStep >= 2 ? themeColors.text : themeColors.textMuted }]}>
+                        {t('reports.step_received')}
                       </Text>
-                      <Text style={styles.stepTimestamp}>
+                      <Text style={[styles.stepTimestamp, { color: themeColors.textMuted }]}>
                         {currentStep >= 2 ? receivedTime : '—'}
                       </Text>
                     </View>
                   </View>
 
                   {/* خطوة 3: قيد الإصلاح */}
-                  <View style={styles.stepRow}>
+                  <View style={[styles.stepRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                     <View style={styles.stepTimelineCol}>
-                      <View style={[styles.stepCircle, currentStep >= 3 && styles.stepCircleActive]}>
-                        <Text style={styles.stepCircleText}>3</Text>
+                      <View style={[styles.stepCircle, currentStep >= 3 && { backgroundColor: themeColors.primary }]}>
+                        <Text style={[styles.stepCircleText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>3</Text>
                       </View>
-                      <View style={[styles.stepVerticalLine, currentStep > 3 && styles.stepLineActive]} />
+                      <View style={[styles.stepVerticalLine, { backgroundColor: themeColors.border }, currentStep > 3 && { backgroundColor: themeColors.primary }]} />
                     </View>
-                    <View style={styles.stepInfoRow}>
-                      <Text style={[styles.stepLabel, currentStep >= 3 && styles.stepLabelActive]}>
-                        فريق التدخل في الميدان (جاري حل المشكلة)
+                    <View style={[styles.stepInfoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                      <Text style={[styles.stepLabel, { color: currentStep >= 3 ? themeColors.text : themeColors.textMuted }]}>
+                        {t('reports.step_in_repair')}
                       </Text>
-                      <Text style={styles.stepTimestamp}>
+                      <Text style={[styles.stepTimestamp, { color: themeColors.textMuted }]}>
                         {currentStep >= 3 ? inRepairTime : '—'}
                       </Text>
                     </View>
                   </View>
 
                   {/* خطوة 4: تم الإصلاح */}
-                  <View style={styles.stepRow}>
+                  <View style={[styles.stepRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                     <View style={styles.stepTimelineCol}>
                       <View
                         style={[
                           styles.stepCircle,
-                          currentStep >= 4 && styles.stepCircleSuccess,
+                          { backgroundColor: themeColors.border },
+                          currentStep >= 4 && { backgroundColor: themeColors.primary },
                         ]}
                       >
-                        <Text style={styles.stepCircleText}>
+                        <Text style={[styles.stepCircleText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>
                           {currentStep >= 4 ? '✓' : '4'}
                         </Text>
                       </View>
                     </View>
-                    <View style={styles.stepInfoRow}>
+                    <View style={[styles.stepInfoRow, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                       <Text
                         style={[
                           styles.stepLabel,
-                          currentStep >= 4 && styles.stepLabelSuccess,
+                          { color: currentStep >= 4 ? themeColors.primary : themeColors.textMuted },
                         ]}
                       >
-                        تم الحل وتأكيد النظافة
+                        {t('reports.step_fixed')}
                       </Text>
-                      <Text style={styles.stepTimestamp}>
+                      <Text style={[styles.stepTimestamp, { color: themeColors.textMuted }]}>
                         {currentStep >= 4 ? fixedTime : '—'}
                       </Text>
                     </View>

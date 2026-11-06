@@ -29,6 +29,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { ACTIVE_REGION, getApproximateNeighborhood } from '../../src/constants/regions';
 import { ChatService } from '../../src/services/chatService';
 import { ChatMessage } from '../../src/types';
@@ -40,6 +42,8 @@ const STORAGE_PINNED_ROOM_KEY = '@twizza_chat_pinned_neighborhood';
 export default function ChatScreen() {
   const router = useRouter();
   const { user, profile, role } = useAuth();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
 
   // حالة التثبيت (Pin / Unpin)
   const [isPinned, setIsPinned] = useState<boolean>(false);
@@ -254,33 +258,33 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       {/* 1. ترويسة الشات النظيفة والمبسطة */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#0D2B1D' : '#1B4D3E' }]}>
+        <View style={[styles.headerTopRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
           {/* زر التثبيت البسيط (Pin / Unpin) */}
           <TouchableOpacity
             style={[styles.pinToggleBtn, isPinned ? styles.pinToggleBtnPinned : styles.pinToggleBtnAuto]}
             onPress={handleTogglePin}
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 4 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 4 }}>
               <AppIcon
                 name={isPinned ? 'pin' : 'gps'}
                 size={12}
                 color={isPinned ? '#B45309' : '#15803D'}
               />
               <Text style={[styles.pinToggleBtnText, isPinned ? styles.pinToggleTextPinned : styles.pinToggleTextAuto]}>
-                {isPinned ? 'مثبت' : 'تلقائي (GPS)'}
+                {isPinned ? t('chat.pinned_to').replace(':', '') : 'GPS'}
               </Text>
             </View>
           </TouchableOpacity>
 
           {/* عنوان الشاشة الصريح */}
           <View style={styles.headerTitleContainer}>
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
               <AppIcon name="chat" size={18} color="#FFFFFF" />
-              <Text style={styles.headerTitle}>شات الحومة</Text>
+              <Text style={styles.headerTitle}>{t('chat.title')}</Text>
             </View>
           </View>
         </View>
@@ -288,30 +292,30 @@ export default function ChatScreen() {
         {/* 2. شريط الحالة البارز المحدد للموقع التلقائي */}
         <View style={[styles.statusBar, isPinned ? styles.statusBarPinned : styles.statusBarAuto]}>
           {isPinned ? (
-            <View style={styles.statusBarPinnedRow}>
+            <View style={[styles.statusBarPinnedRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
               <TouchableOpacity
                 style={styles.unpinInlineBtn}
                 onPress={handleTogglePin}
                 activeOpacity={0.8}
               >
-                <Text style={styles.unpinInlineBtnText}>فك التثبيت</Text>
+                <Text style={styles.unpinInlineBtnText}>{t('chat.unpin')}</Text>
               </TouchableOpacity>
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
                 <AppIcon name="pin" size={13} color="#B45309" />
                 <Text style={styles.statusBarPinnedText}>
-                  الشات مثبت على: {currentNeighborhood}
+                  {t('chat.pinned_to')} {currentNeighborhood}
                 </Text>
               </View>
             </View>
           ) : (
-            <View style={styles.statusBarAutoRow}>
+            <View style={[styles.statusBarAutoRow, { flexDirection: isRTL ? 'row' : 'row-reverse' }]}>
               {isDetectingLocation ? (
                 <ActivityIndicator size="small" color="#15803D" style={{ marginLeft: 6 }} />
               ) : null}
-              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6 }}>
                 <AppIcon name="pin" size={13} color="#15803D" />
                 <Text style={styles.statusBarAutoText}>
-                  أنت الآن متصل بشات حومتك الحالية: {currentNeighborhood}
+                  {t('chat.connected_to')} {currentNeighborhood}
                 </Text>
               </View>
             </View>
@@ -326,7 +330,7 @@ export default function ChatScreen() {
               onPress={autoDetectAndConnectGPS}
               activeOpacity={0.8}
             >
-              <Text style={styles.retryGpsText}>تحديث الموقع</Text>
+              <Text style={styles.retryGpsText}>{t('common.retry') || 'تحديث'}</Text>
             </TouchableOpacity>
             <Text style={styles.errorBannerText}>{locationError}</Text>
           </View>
@@ -335,21 +339,21 @@ export default function ChatScreen() {
 
       {/* 3. منطقة المحادثة مع لوحة المفاتيح التفاعلية */}
       <KeyboardAvoidingView
-        style={styles.chatContainer}
+        style={[styles.chatContainer, { backgroundColor: themeColors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {loadingMessages ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>جاري تحميل رسائل الجيران في {currentNeighborhood}...</Text>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+            <Text style={[styles.loadingText, { color: themeColors.textSecondary }]}>{t('common.loading')}</Text>
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <AppIcon name="chat" size={44} color="#9CA3AF" />
-            <Text style={styles.emptyTitle}>لا توجد رسائل بعد في {currentNeighborhood}</Text>
-            <Text style={styles.emptyDesc}>
-              كن أول من يبدأ المحادثة وينسق حملة تويزة ونظافة مع جيران هذا الحي!
+            <AppIcon name="chat" size={44} color={themeColors.textMuted} />
+            <Text style={[styles.emptyTitle, { color: themeColors.text }]}>{t('chat.empty_title')}</Text>
+            <Text style={[styles.emptyDesc, { color: themeColors.textSecondary }]}>
+              {t('chat.empty_desc')}
             </Text>
           </View>
         ) : (
@@ -373,24 +377,26 @@ export default function ChatScreen() {
                   <View
                     style={[
                       styles.messageBubble,
-                      isMine ? styles.messageBubbleMine : styles.messageBubbleOther,
+                      isMine
+                        ? [styles.messageBubbleMine, { backgroundColor: themeColors.primary }]
+                        : [styles.messageBubbleOther, { backgroundColor: themeColors.surface, borderColor: themeColors.border }],
                       isAdmin && !isMine && styles.messageBubbleAdmin,
                     ]}
                   >
                     {/* معلومات المرسل */}
-                    <View style={styles.senderHeader}>
+                    <View style={[styles.senderHeader, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
                       <Text
                         style={[
                           styles.senderName,
-                          isMine ? styles.senderNameMine : styles.senderNameOther,
+                          isMine ? [styles.senderNameMine, { color: isDark ? '#061C12' : '#FFFFFF' }] : [styles.senderNameOther, { color: themeColors.primary }],
                         ]}
                       >
-                        {isMine ? 'أنت' : item.senderName}
+                        {isMine ? (language === 'ar' ? 'أنت' : language === 'fr' ? 'Vous' : 'You') : item.senderName}
                       </Text>
                       {isAdmin && (
                         <View style={styles.adminBadge}>
                           <AppIcon name="shield" size={11} color="#B45309" />
-                          <Text style={styles.adminBadgeText}>مشرف بلدية</Text>
+                          <Text style={styles.adminBadgeText}>{t('chat.admin_badge')}</Text>
                         </View>
                       )}
                     </View>
@@ -399,7 +405,7 @@ export default function ChatScreen() {
                     <Text
                       style={[
                         styles.messageText,
-                        isMine ? styles.messageTextMine : styles.messageTextOther,
+                        isMine ? [styles.messageTextMine, { color: isDark ? '#061C12' : '#FFFFFF' }] : [styles.messageTextOther, { color: themeColors.text }],
                       ]}
                     >
                       {item.text}
@@ -409,7 +415,7 @@ export default function ChatScreen() {
                     <Text
                       style={[
                         styles.messageTime,
-                        isMine ? styles.messageTimeMine : styles.messageTimeOther,
+                        isMine ? [styles.messageTimeMine, { color: isDark ? '#0D2B1D' : '#E0F2FE' }] : [styles.messageTimeOther, { color: themeColors.textMuted }],
                       ]}
                     >
                       {formatMessageTime(item.createdAt)}
@@ -423,10 +429,11 @@ export default function ChatScreen() {
 
         {/* 4. شريط إدخال الرسالة */}
         {user ? (
-          <View style={styles.inputContainer}>
+          <View style={[styles.inputContainer, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
             <TouchableOpacity
               style={[
                 styles.sendBtn,
+                { backgroundColor: themeColors.primary },
                 (!inputText.trim() || isSending) && styles.sendBtnDisabled,
               ]}
               onPress={handleSend}
@@ -434,16 +441,24 @@ export default function ChatScreen() {
               activeOpacity={0.85}
             >
               {isSending ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color={isDark ? '#061C12' : '#FFF'} />
               ) : (
-                <Text style={styles.sendBtnText}>إرسال</Text>
+                <Text style={[styles.sendBtnText, { color: isDark ? '#061C12' : '#FFF' }]}>{t('chat.send')}</Text>
               )}
             </TouchableOpacity>
 
             <TextInput
-              style={styles.input}
-              placeholder={`اكتب رسالة لجيران ${currentNeighborhood}...`}
-              placeholderTextColor="#9E9E9E"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: themeColors.surfaceAlt,
+                  color: themeColors.text,
+                  borderColor: themeColors.border,
+                  textAlign: isRTL ? 'right' : 'left',
+                },
+              ]}
+              placeholder={`${t('chat.input_placeholder')} (${currentNeighborhood})`}
+              placeholderTextColor={themeColors.textMuted}
               value={inputText}
               onChangeText={setInputText}
               multiline={false}
@@ -453,15 +468,15 @@ export default function ChatScreen() {
             />
           </View>
         ) : (
-          <View style={styles.guestPromptContainer}>
-            <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <AppIcon name="shield" size={16} color="#64748B" />
-              <Text style={styles.guestPromptText}>
-                سجّل الدخول بحساب مواطن للمشاركة في شات الحي
+          <View style={[styles.guestPromptContainer, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+            <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <AppIcon name="shield" size={16} color={themeColors.textMuted} />
+              <Text style={[styles.guestPromptText, { color: themeColors.textSecondary }]}>
+                {t('chat.guest_prompt')}
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.guestLoginBtn}
+              style={[styles.guestLoginBtn, { backgroundColor: themeColors.primary }]}
               onPress={() =>
                 router.push({
                   pathname: '/(auth)/login',
@@ -470,7 +485,7 @@ export default function ChatScreen() {
               }
               activeOpacity={0.85}
             >
-              <Text style={styles.guestLoginBtnText}>تسجيل الدخول</Text>
+              <Text style={[styles.guestLoginBtnText, { color: isDark ? '#061C12' : '#FFF' }]}>{t('profile.login')}</Text>
             </TouchableOpacity>
           </View>
         )}

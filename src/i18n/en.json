@@ -74,7 +74,12 @@
     "filter_solved": "Solved",
     "empty_title": "No reports registered yet",
     "empty_desc": "If you notice a waste issue or broken bin in your area, submit a report to help resolve it.",
-    "new_report": "Submit First Report"
+    "new_report": "Submit First Report",
+    "tracking_title": "Report Tracking",
+    "step_sent": "Sent",
+    "step_received": "Received",
+    "step_in_repair": "In Progress",
+    "step_fixed": "Resolved"
   },
   "add": {
     "title": "Add Report or Place",
@@ -93,6 +98,34 @@
     "notes_placeholder": "Add details to help the response team...",
     "submit": "Submit Report",
     "submitting": "Submitting report..."
+  },
+  "map": {
+    "title": "Laghouat Map",
+    "search_placeholder": "Search neighborhood or bin...",
+    "nearest_bin": "Nearest Bin",
+    "bins_nearby": "bins nearby",
+    "directions": "Directions",
+    "report": "Report",
+    "confirm_still_there": "Still there",
+    "need_bin": "Need a bin here",
+    "all_types": "All",
+    "filter_bins": "Bins",
+    "filter_points": "Collection Points",
+    "filter_dumps": "Black Spots"
+  },
+  "chat": {
+    "title": "Local Chat",
+    "all_neighborhoods": "All Neighborhoods",
+    "connected_to": "Connected to neighborhood:",
+    "pinned_to": "Chat pinned to:",
+    "empty_title": "No messages yet",
+    "empty_desc": "Be the first to start a conversation and organize a clean-up campaign with your neighbors!",
+    "input_placeholder": "Write a message to neighbors...",
+    "send": "Send",
+    "guest_prompt": "Sign in to participate in the local chat",
+    "admin_badge": "Municipality Admin",
+    "pin": "Pin",
+    "unpin": "Unpin"
   },
   "profile": {
     "title": "Profile",
@@ -116,5 +149,15 @@
     "password": "Password",
     "enter_as_guest": "Continue as Guest",
     "find_closest_bin": "Find Closest Bin"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "close": "Close",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error"
   }
 }

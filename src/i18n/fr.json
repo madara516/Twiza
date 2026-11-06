@@ -74,7 +74,12 @@
     "filter_solved": "Résolus",
     "empty_title": "Aucun rapport enregistré",
     "empty_desc": "Si vous repérez une décharge sauvage ou un bac endommagé, contribuez à embellir notre ville et signalez-le.",
-    "new_report": "Envoyer le premier rapport"
+    "new_report": "Envoyer le premier rapport",
+    "tracking_title": "Suivi des Rapports",
+    "step_sent": "Envoyé",
+    "step_received": "Reçu",
+    "step_in_repair": "En cours",
+    "step_fixed": "Résolu"
   },
   "add": {
     "title": "Ajouter un rapport ou un lieu",
@@ -93,6 +98,34 @@
     "notes_placeholder": "Ajoutez des précisions pour aider l'équipe...",
     "submit": "Soumettre le rapport",
     "submitting": "Envoi en cours..."
+  },
+  "map": {
+    "title": "Carte de Laghouat",
+    "search_placeholder": "Rechercher quartier ou bac...",
+    "nearest_bin": "Bac le plus proche",
+    "bins_nearby": "bacs à proximité",
+    "directions": "Itinéraire",
+    "report": "Signaler",
+    "confirm_still_there": "Toujours là",
+    "need_bin": "Besoin d'un bac ici",
+    "all_types": "Tous",
+    "filter_bins": "Bacs",
+    "filter_points": "Points d'apport",
+    "filter_dumps": "Décharges"
+  },
+  "chat": {
+    "title": "Chat Quartier",
+    "all_neighborhoods": "Tous les quartiers",
+    "connected_to": "Connecté au quartier :",
+    "pinned_to": "Chat épinglé sur :",
+    "empty_title": "Aucun message pour l'instant",
+    "empty_desc": "Soyez le premier à lancer une discussion et organiser une action citoyenne avec vos voisins !",
+    "input_placeholder": "Écrivez un message aux voisins...",
+    "send": "Envoyer",
+    "guest_prompt": "Connectez-vous pour participer au chat du quartier",
+    "admin_badge": "Superviseur Municipal",
+    "pin": "Épingler",
+    "unpin": "Détacher"
   },
   "profile": {
     "title": "Profil",
@@ -116,5 +149,15 @@
     "password": "Mot de passe",
     "enter_as_guest": "Continuer en tant qu'invité",
     "find_closest_bin": "Bac le plus proche"
+  },
+  "common": {
+    "back": "Retour",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "success": "Succès",
+    "error": "Erreur"
   }
 }

@@ -35,6 +35,8 @@ import { useRouter } from 'expo-router';
 import { colors } from '../../src/theme/colors';
 import { theme } from '../../src/theme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { AdminService, AdminOverviewStats } from '../../src/services/adminService';
 import { VoteService } from '../../src/services/voteService';
 import { ReportService } from '../../src/services/reportService';
@@ -83,6 +85,8 @@ const MOCK_CITIZEN_SUBMISSIONS: Place[] = [
 export default function AdminScreen() {
   const router = useRouter();
   const { user, role, isAdmin, logout, setGuestMode, refreshProfile } = useAuth();
+  const { colors: themeColors, isDark } = useTheme();
+  const { t, isRTL, language } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('places');
   const [loading, setLoading] = useState<boolean>(true);
@@ -275,18 +279,18 @@ export default function AdminScreen() {
   // شاشة الوصول المحمي إذا لم يكن مشرفاً
   if (!loading && !isAdmin && role !== 'admin') {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.deniedContainer}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.deniedContainer, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
           <AppIcon name="shield" size={48} color="#DC2626" />
-          <Text style={styles.deniedTitle}>لوحة تحكم المشرف والبلدية</Text>
-          <Text style={styles.deniedMessage}>
+          <Text style={[styles.deniedTitle, { color: themeColors.text }]}>لوحة تحكم المشرف والبلدية</Text>
+          <Text style={[styles.deniedMessage, { color: themeColors.textSecondary }]}>
             هذا القسم مخصص حصرياً للمشرفين وممثلي بلدية الأغواط المعتمدين لمتابعة التقارير وإدارة البيانات.
           </Text>
           <TouchableOpacity
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: themeColors.primary }]}
             onPress={() => router.replace('/(tabs)')}
           >
-            <Text style={styles.backBtnText}>العودة للخريطة</Text>
+            <Text style={[styles.backBtnText, { color: isDark ? '#061C12' : '#FFFFFF' }]}>العودة للخريطة</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -296,7 +300,7 @@ export default function AdminScreen() {
   const submissionsToShow = pendingPlaces.length > 0 ? pendingPlaces : MOCK_CITIZEN_SUBMISSIONS;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: themeColors.background }]}>
       {/* 1. الترويسة العلوية المطابقة لـ Screen 4 */}
       <View style={styles.adminTopBar}>
         {/* زر القائمة وزر الخروج المباشر */}
